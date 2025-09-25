@@ -221,6 +221,64 @@ export function getStoryById(id: number): {
   }
 }
 
+// Delete a story by ID
+export function deleteStoryById(id: number): boolean {
+  try {
+    const transaction = db.transaction(() => {
+      // Delete related characters
+      const charStmt = db.prepare(`
+        DELETE FROM characters
+        WHERE story_id = ?
+      `)
+      charStmt.run(id)
+      
+      // Delete related scenes
+      const sceneStmt = db.prepare(`
+        DELETE FROM scenes
+        WHERE story_id = ?
+      `)
+      sceneStmt.run(id)
+      
+      // Delete the story
+      const storyStmt = db.prepare(`
+        DELETE FROM stories
+        WHERE id = ?
+      `)
+      const result = storyStmt.run(id)
+      
+      return result.changes > 0
+    })
+    
+    return transaction()
+  } catch (error) {
+    console.error('Error deleting story:', error)
+    return false
+  }
+}
+
+// Delete all stories
+export function deleteAllStories(): boolean {
+  try {
+    const transaction = db.transaction(() => {
+      // Delete all characters
+      db.exec(`DELETE FROM characters`)
+      
+      // Delete all scenes
+      db.exec(`DELETE FROM scenes`)
+      
+      // Delete all stories
+      db.exec(`DELETE FROM stories`)
+      
+      return true
+    })
+    
+    return transaction()
+  } catch (error) {
+    console.error('Error deleting all stories:', error)
+    return false
+  }
+}
+
 // Initialize the database when this module is imported
 initializeDatabase()
 

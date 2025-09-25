@@ -45,7 +45,7 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
               />
               {!imageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <MapPin className="w-12 h-12 text-muted-foreground animate-pulse" />
+                  <MapPin className="w-8 h-8 text-muted-foreground animate-pulse" />
                 </div>
               )}
 
@@ -201,11 +201,20 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
                   <div>
                     <span className="text-sm font-medium flex items-center gap-1 mb-1">
                       <Zap className="w-3 h-3" />
-                      Actions:
+                      Key Actions:
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      {scene.analysis.keyActions.slice(0, 3).join(", ")}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {scene.analysis.keyActions.slice(0, 3).map((action: string, i: number) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {action}
+                        </Badge>
+                      ))}
+                      {scene.analysis.keyActions.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{scene.analysis.keyActions.length - 3}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -213,7 +222,6 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
           </div>
         </CardContent>
       </Card>
-
       {!isLast && <Separator className="my-8" />}
     </div>
   )

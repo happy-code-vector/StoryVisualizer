@@ -37,7 +37,7 @@ export default function CharacterCard({ character, index }: CharacterCardProps) 
           />
           {!imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <User className="w-12 h-12 text-muted-foreground animate-pulse" />
+              <User className="w-8 h-8 text-muted-foreground animate-pulse" />
             </div>
           )}
 

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, Users, BookOpen } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ArrowLeft, Calendar, Users, BookOpen, Eye } from "lucide-react"
 import CharacterCard from "@/components/CharacterCard"
 import SceneCard from "@/components/SceneCard"
 
@@ -78,18 +79,16 @@ export default function StoryPage({ params }: { params: { id: string } }) {
       
       setStory(data)
       
-      // Process characters
+      // Process characters - use image URLs from the analysis
       const characters: Character[] = data.analysis.characters.map((char: any) => ({
         name: char.name,
         description: char.description,
         mentions: char.mentions,
         attributes: char.attributes,
-        imageUrl: `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(
-          `${char.name} - ${char.description.substring(0, 100)}`
-        )}`,
+        imageUrl: char.imageUrl || `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(char.name)}`,
       }))
       
-      // Process scenes
+      // Process scenes - use image URLs from the analysis
       const scenes: Scene[] = data.analysis.scenes.map((scene: any) => ({
         id: scene.id,
         title: scene.title,
@@ -98,9 +97,7 @@ export default function StoryPage({ params }: { params: { id: string } }) {
         setting: scene.setting,
         mood: scene.mood,
         analysis: scene,
-        imageUrl: `/placeholder.svg?height=600&width=800&query=${encodeURIComponent(
-          `${scene.setting} ${scene.timeOfDay} ${scene.mood}`
-        )}`,
+        imageUrl: scene.imageUrl || `/placeholder.svg?height=600&width=800&text=${encodeURIComponent(scene.setting)}`,
       }))
       
       setProcessedCharacters(characters)
@@ -120,6 +117,11 @@ export default function StoryPage({ params }: { params: { id: string } }) {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const getStoryPreview = (story: string) => {
+    const sentences = story.split('. ').slice(0, 2);
+    return sentences.join('. ') + (sentences.length < story.split('. ').length ? '...' : '');
   }
 
   if (loading) {
@@ -209,7 +211,28 @@ export default function StoryPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent>
             <div className="prose max-w-none">
-              <p className="text-muted-foreground whitespace-pre-wrap">{story.story}</p>
+              <p className="text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                {getStoryPreview(story.story)}
+              </p>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="mt-4">
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Full Story
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-primary" />
+                      {story.title || "Untitled Story"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="prose max-w-none">
+                    <p className="text-muted-foreground whitespace-pre-wrap">{story.story}</p>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>

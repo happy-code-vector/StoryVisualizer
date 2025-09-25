@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { saveStoryAnalysis } from '@/lib/db-service'
+import { generateCharacterImage, generateSceneImage } from '@/lib/fal-ai-service'
 
+// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// Define the response structure
 interface Character {
   name: string
   mentions: number
@@ -32,6 +35,7 @@ interface StoryAnalysis {
   scenes: Scene[]
 }
 
+// Preprocessing function
 function preprocessText(text: string): string {
   return text
     .replace(/\r\n/g, "\n") // Normalize line endings
@@ -48,8 +52,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Story content is required' }, { status: 400 })
     }
 
+    // Preprocess the story text
     const preprocessedStory = preprocessText(story)
 
+    // Create the prompt for OpenAI
     const prompt = `You are an expert literary analyst AI. Your task is to analyze a story and extract detailed information about characters, scenes, and settings. Process the story and provide a structured JSON response with the following information:
 
 1. Characters:
@@ -103,20 +109,24 @@ Return ONLY a valid JSON object with this exact structure:
 Story to analyze:
 ${preprocessedStory}`
 
+    // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4", // You can change this to "gpt-3.5-turbo" if preferred
       messages: [
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 4000,
+      temperature: 0.3, // Lower temperature for more consistent, factual responses
+      max_tokens: 4000, // Adjust based on your needs
+      // Removed response_format parameter as it's not supported with this model
     })
 
+    // Extract and parse the response
     const content = response.choices[0].message.content || "{}"
     
+    // Try to parse the JSON response
     let analysis: StoryAnalysis;
     try {
       analysis = JSON.parse(content)
@@ -131,11 +141,39 @@ ${preprocessedStory}`
       }
     }
 
+    // Generate images for characters
+    const charactersWithImages = await Promise.all(
+      analysis.characters.map(async (character) => {
+        const imageUrl = await generateCharacterImage(character)
+        return {
+          ...character,
+          imageUrl,
+        }
+      })
+    )
+
+    // Generate images for scenes
+    const scenesWithImages = await Promise.all(
+      analysis.scenes.map(async (scene) => {
+        const imageUrl = await generateSceneImage(scene)
+        return {
+          ...scene,
+          imageUrl,
+        }
+      })
+    )
+
+    // Update the analysis with image URLs
+    const analysisWithImages: StoryAnalysis = {
+      characters: charactersWithImages,
+      scenes: scenesWithImages,
+    }
+
     // Save the analysis to the database
-    const storyId = saveStoryAnalysis(title || "Untitled Story", story, analysis)
+    const storyId = saveStoryAnalysis(title || "Untitled Story", story, analysisWithImages)
 
     return NextResponse.json({
-      ...analysis,
+      ...analysisWithImages,
       id: storyId
     })
   } catch (error) {

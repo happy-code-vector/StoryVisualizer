@@ -57,18 +57,16 @@ export default function StoryVisualizerApp() {
       
       setProcessing({ step: "Processing results...", progress: 80, isProcessing: true })
       
-      // Process characters
+      // Process characters - use image URLs from the analysis
       const processedCharacters: Character[] = analysis.characters.map((char) => ({
         name: char.name,
         description: char.description,
         mentions: char.mentions,
         attributes: char.attributes,
-        imageUrl: `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(
-          `${char.name} - ${char.description.substring(0, 100)}`
-        )}`,
+        imageUrl: char.imageUrl || `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(char.name)}`,
       }))
 
-      // Process scenes
+      // Process scenes - use image URLs from the analysis
       const processedScenes: Scene[] = analysis.scenes.map((scene) => ({
         id: scene.id,
         title: scene.title,
@@ -77,9 +75,7 @@ export default function StoryVisualizerApp() {
         setting: scene.setting,
         mood: scene.mood,
         analysis: scene,
-        imageUrl: `/placeholder.svg?height=600&width=800&query=${encodeURIComponent(
-          `${scene.setting} ${scene.timeOfDay} ${scene.mood}`
-        )}`,
+        imageUrl: scene.imageUrl || `/placeholder.svg?height=600&width=800&text=${encodeURIComponent(scene.setting)}`,
       }))
 
       setProcessing({ step: "Complete!", progress: 100, isProcessing: false })

@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft, Eye, Trash2 } from "lucide-react"
 
 interface Story {
   id: number
@@ -53,6 +55,45 @@ export default function HistoryPage() {
     router.push(`/story/${id}`)
   }
 
+  const deleteStory = async (id: number) => {
+    try {
+      const response = await fetch(`/api/stories/${id}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove the story from the local state
+        setStories(stories.filter(story => story.id !== id))
+      } else {
+        console.error('Failed to delete story')
+      }
+    } catch (error) {
+      console.error('Error deleting story:', error)
+    }
+  }
+
+  const deleteAllStories = async () => {
+    try {
+      const response = await fetch('/api/stories/delete-all', {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Clear the local state
+        setStories([])
+      } else {
+        console.error('Failed to delete all stories')
+      }
+    } catch (error) {
+      console.error('Error deleting all stories:', error)
+    }
+  }
+
+  const getStoryPreview = (story: string) => {
+    const sentences = story.split('. ').slice(0, 2);
+    return sentences.join('. ') + (sentences.length < story.split('. ').length ? '...' : '');
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background relative overflow-hidden">
@@ -79,6 +120,31 @@ export default function HistoryPage() {
               Analysis History
             </h1>
           </div>
+          {stories.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all story analyses
+                    and remove all associated data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={deleteAllStories}>
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {stories.length === 0 ? (
@@ -99,8 +165,7 @@ export default function HistoryPage() {
             {stories.map((story) => (
               <Card 
                 key={story.id} 
-                className="border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/70 transition-colors cursor-pointer"
-                onClick={() => viewStory(story.id)}
+                className="border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/70 transition-colors"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -114,27 +179,75 @@ export default function HistoryPage() {
                     </Badge>
                   </div>
                   <CardDescription className="line-clamp-2">
-                    {story.story.substring(0, 150)}...
+                    {getStoryPreview(story.story)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-accent" />
-                      <span className="text-sm">
-                        {story.analysis.characters?.length || 0} characters
-                      </span>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-accent" />
+                        <span className="text-sm">
+                          {story.analysis.characters?.length || 0} characters
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-primary" />
+                        <span className="text-sm">
+                          {story.analysis.scenes?.length || 0} scenes
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {story.analysis.characters?.reduce((sum, c) => sum + c.mentions, 0) || 0} total mentions
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-primary" />
-                      <span className="text-sm">
-                        {story.analysis.scenes?.length || 0} scenes
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {story.analysis.characters?.reduce((sum, c) => sum + c.mentions, 0) || 0} total mentions
-                      </span>
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Story
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <BookOpen className="w-5 h-5 text-primary" />
+                              {story.title || "Untitled Story"}
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="prose max-w-none">
+                            <p className="text-muted-foreground whitespace-pre-wrap">{story.story}</p>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Button size="sm" onClick={() => viewStory(story.id)}>
+                        View Analysis
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the story analysis
+                              "{story.title || "Untitled Story"}" and remove all associated data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteStory(story.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
