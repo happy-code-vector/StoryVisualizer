@@ -1,38 +1,86 @@
 import { NextResponse } from 'next/server'
-import {fal} from '@fal-ai/client'
-
-fal.config({
-    credentials: process.env.FAL_AI_API_KEY,
-})
 
 async function generateSceneImage(scene: {
   setting: string
   timeOfDay: string
   mood: string
   description: string
+  characterImages?: { name: string; url: string }[]
 }): Promise<string> {
+
+  const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY
+  
+  if (!FAL_AI_API_KEY) {
+    throw new Error('FAL_AI_API_KEY is not set')
+  }
 
   try {
     const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, cinematic, detailed environment, high quality, ultra realistic style`
-
-    const response = await fal.subscribe('/fal-ai/gemini-flash-edit/multi', {
-      input: {
-        prompt: prompt,
-        input_image_urls: ["https://example.com/path/to/your/image.jpg"],
-        image_size: 'landscape_16_9',
-        num_inference_steps: 25,
-        guidance_scale: 7.5,
-        num_images: 1,
-        enable_safety_checker: true
-      },
-    })
-
-    const data = await response.data
     
-    if (data.images && data.images.length > 0) {
-      return data.images[0].url
+    // If we have character images, we'll use image-to-image generation
+    if (scene.characterImages && scene.characterImages.length > 0) {
+      console.log(`[SceneImage] Generating scene image with ${scene.characterImages.length} character references`)
+      
+      const response = await fetch('https://fal.run/fal-ai/gemini-flash-edit/multi', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Key ${FAL_AI_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            input_image_urls: scene.characterImages,
+            prompt: prompt,
+            strength: 0.7,
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+            num_images: 1,
+            enable_safety_checker: true
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Fal AI API error: ${response.status} - ${errorText}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.images && data.images.length > 0) {
+        return data.images[0].url
+      } else {
+        throw new Error('No image generated')
+      }
     } else {
-      throw new Error('No image generated')
+      console.log("[SceneImage] Generating scene image without character references")
+      
+      const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Key ${FAL_AI_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            prompt: prompt,
+            image_size: 'landscape_16_9',
+            num_inference_steps: 25,
+            guidance_scale: 7.5,
+            num_images: 1,
+            enable_safety_checker: true
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Fal AI API error: ${response.status} - ${errorText}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.images && data.images.length > 0) {
+        return data.images[0].url
+      } else {
+        throw new Error('No image generated')
+      }
     }
   } catch (error: any) {
     console.error('Error generating scene image with Fal AI:', error)

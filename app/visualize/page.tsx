@@ -58,13 +58,11 @@ export default function VisualizePage() {
   useEffect(() => {
     setIsClient(true)
     
-    // Retrieve the analysis result from sessionStorage
     const storedAnalysis = sessionStorage.getItem('storyAnalysis')
     if (storedAnalysis) {
       const analysis: StoryAnalysis = JSON.parse(storedAnalysis)
       setStoryAnalysis(analysis)
     } else {
-      // If no analysis is found, redirect to the story page
       router.push('/story')
     }
   }, [])
@@ -73,18 +71,19 @@ export default function VisualizePage() {
     if (isClient && storyAnalysis) {
       const processedCharacters: Character[] = storyAnalysis.analysis.characters.map((char) => ({
         ...char,
-        imageUrl: undefined,
+        imageUrl: undefined, // Will be generated later
       }))
 
       const processedScenes: Scene[] = storyAnalysis.analysis.scenes.map((scene) => ({
         ...scene,
         analysis: scene,
-        imageUrl: undefined,
+        imageUrl: undefined, // Will be generated later
       }))
 
       setCharacters(processedCharacters)
       setScenes(processedScenes)
       
+      // Generate images for characters and scenes
       generateImages(processedCharacters, processedScenes)
     }
   }, [isClient, storyAnalysis])
@@ -122,7 +121,7 @@ export default function VisualizePage() {
             imageUrl
           }
         } catch (error) {
-          console.error(`Error generating image for character ${character.name}:`, error)
+          console.error(`[VisualizePage] Error generating image for character ${character.name}:`, error)
           return {
             ...character,
             imageUrl: `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`
@@ -137,12 +136,24 @@ export default function VisualizePage() {
     const scenesWithImages = await Promise.all(
       scenes.map(async (scene, index) => {
         try {
+          console.log(`[VisualizePage] Generating image for scene: ${scene.title}`)
+          
+          const characterImages = scene.characters
+            .map(characterName => {
+              const character = charactersWithImages.find(c => c.name === characterName);
+              return character?.imageUrl ? character.imageUrl : null;
+            })
+            .filter(Boolean) as string[];
+          
           const response = await fetch('/api/generate-scene-image', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(scene),
+            body: JSON.stringify({
+              ...scene,
+              characterImages // Pass character images to the scene generation
+            }),
           })
 
           if (!response.ok) {
@@ -151,8 +162,8 @@ export default function VisualizePage() {
           }
 
           const { imageUrl } = await response.json()
+          console.log(`[VisualizePage] Generated image for scene ${scene.title}:`, imageUrl)
           
-          // Update progress
           const progress = 50 + Math.floor((index + 1) / scenes.length * 40)
           setProcessing({ 
             step: `Generating scene images (${index + 1}/${scenes.length})...`, 
@@ -165,7 +176,7 @@ export default function VisualizePage() {
             imageUrl
           }
         } catch (error) {
-          console.error(`Error generating image for scene ${scene.title}:`, error)
+          console.error(`[VisualizePage] Error generating image for scene ${scene.title}:`, error)
           return {
             ...scene,
             imageUrl: `/placeholder.svg?height=600&width=800&text=${encodeURIComponent(scene.setting)}`
@@ -200,13 +211,13 @@ export default function VisualizePage() {
       }
       
       const result = await response.json()
-      console.log('Story analysis saved with ID:', result.id)
+      console.log('[VisualizePage] Story analysis saved with ID:', result.id)
     } catch (error) {
-      console.error('Error saving story analysis to database:', error)
+      console.error('[VisualizePage] Error saving story analysis to database:', error)
     }
     
     setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
-    console.log("[Image Generation] Complete!")
+    console.log("[VisualizePage] Image generation complete!")
   }
 
   const exportResults = () => {
