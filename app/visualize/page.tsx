@@ -52,42 +52,46 @@ export default function VisualizePage() {
     progress: 0,
     isProcessing: true,
   })
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
+    setIsClient(true)
+    
     // Retrieve the analysis result from sessionStorage
     const storedAnalysis = sessionStorage.getItem('storyAnalysis')
     if (storedAnalysis) {
       const analysis: StoryAnalysis = JSON.parse(storedAnalysis)
       setStoryAnalysis(analysis)
-      
-      // Set characters and scenes without images initially
-      const processedCharacters: Character[] = analysis.analysis.characters.map((char) => ({
-        ...char,
-        imageUrl: undefined, // Will be generated later
-      }))
-
-      const processedScenes: Scene[] = analysis.analysis.scenes.map((scene) => ({
-        ...scene,
-        analysis: scene,
-        imageUrl: undefined, // Will be generated later
-      }))
-
-      setCharacters(processedCharacters)
-      setScenes(processedScenes)
-      
-      // Generate images for characters and scenes
-      generateImages(processedCharacters, processedScenes)
     } else {
       // If no analysis is found, redirect to the story page
       router.push('/story')
     }
   }, [])
 
+  useEffect(() => {
+    if (isClient && storyAnalysis) {
+      const processedCharacters: Character[] = storyAnalysis.analysis.characters.map((char) => ({
+        ...char,
+        imageUrl: undefined,
+      }))
+
+      const processedScenes: Scene[] = storyAnalysis.analysis.scenes.map((scene) => ({
+        ...scene,
+        analysis: scene,
+        imageUrl: undefined,
+      }))
+
+      setCharacters(processedCharacters)
+      setScenes(processedScenes)
+      
+      generateImages(processedCharacters, processedScenes)
+    }
+  }, [isClient, storyAnalysis])
+
   const generateImages = async (characters: Character[], scenes: Scene[]) => {
     setProcessing({ step: "Generating character images...", progress: 10, isProcessing: true })
     
-    // Generate character images
     const charactersWithImages = await Promise.all(
       characters.map(async (character, index) => {
         try {
@@ -106,7 +110,6 @@ export default function VisualizePage() {
 
           const { imageUrl } = await response.json()
           
-          // Update progress
           const progress = 10 + Math.floor((index + 1) / characters.length * 40)
           setProcessing({ 
             step: `Generating character images (${index + 1}/${characters.length})...`, 
@@ -131,7 +134,6 @@ export default function VisualizePage() {
     setCharacters(charactersWithImages)
     setProcessing({ step: "Generating scene images...", progress: 50, isProcessing: true })
     
-    // Generate scene images
     const scenesWithImages = await Promise.all(
       scenes.map(async (scene, index) => {
         try {
@@ -173,6 +175,36 @@ export default function VisualizePage() {
     )
 
     setScenes(scenesWithImages)
+    
+    setProcessing({ step: "Saving to database...", progress: 90, isProcessing: true })
+    
+    try {
+      const response = await fetch('/api/save-story-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: storyAnalysis?.title || "Untitled Story",
+          story: storyAnalysis?.story || "",
+          analysis: {
+            characters: charactersWithImages,
+            scenes: scenesWithImages
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save story analysis')
+      }
+      
+      const result = await response.json()
+      console.log('Story analysis saved with ID:', result.id)
+    } catch (error) {
+      console.error('Error saving story analysis to database:', error)
+    }
+    
     setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
     console.log("[Image Generation] Complete!")
   }

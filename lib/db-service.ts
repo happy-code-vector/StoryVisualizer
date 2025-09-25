@@ -19,6 +19,7 @@ interface CharacterRecord {
   description: string
   attributes: string // JSON string
   relationships: string // JSON string
+  imageUrl: string | null // Add image URL field
 }
 
 interface SceneRecord {
@@ -34,13 +35,14 @@ interface SceneRecord {
   characters: string // JSON string
   objects: string // JSON string
   emotions: string // JSON string
+  imageUrl: string | null // Add image URL field
 }
 
 // Initialize the database
 const dbPath = path.join(process.cwd(), 'story-visualizer.db')
 const db = new Database(dbPath)
 
-// Create tables if they don't exist
+// Create tables if they don't exist and add missing columns
 function initializeDatabase() {
   // Create stories table
   db.exec(`
@@ -67,6 +69,13 @@ function initializeDatabase() {
     )
   `)
 
+  // Add image_url column to characters table if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE characters ADD COLUMN image_url TEXT`)
+  } catch (error) {
+    // Column already exists, ignore the error
+  }
+
   // Create scenes table
   db.exec(`
     CREATE TABLE IF NOT EXISTS scenes (
@@ -86,10 +95,17 @@ function initializeDatabase() {
     )
   `)
 
+  // Add image_url column to scenes table if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE scenes ADD COLUMN image_url TEXT`)
+  } catch (error) {
+    // Column already exists, ignore the error
+  }
+
   console.log('Database initialized')
 }
 
-// Save a story and its analysis
+// Save a story and its analysis with image URLs
 export function saveStoryAnalysis(
   title: string,
   story: string,
@@ -105,11 +121,11 @@ export function saveStoryAnalysis(
     const storyResult = storyStmt.run(title, story, JSON.stringify(analysis))
     const storyId = storyResult.lastInsertRowid as number
     
-    // Insert characters
+    // Insert characters with image URLs
     if (analysis.characters && Array.isArray(analysis.characters)) {
       const charStmt = db.prepare(`
-        INSERT INTO characters (story_id, name, mentions, description, attributes, relationships)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO characters (story_id, name, mentions, description, attributes, relationships, image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
       
       for (const character of analysis.characters) {
@@ -119,19 +135,20 @@ export function saveStoryAnalysis(
           character.mentions,
           character.description,
           JSON.stringify(character.attributes || []),
-          JSON.stringify(character.relationships || [])
+          JSON.stringify(character.relationships || []),
+          character.imageUrl || null
         )
       }
     }
     
-    // Insert scenes
+    // Insert scenes with image URLs
     if (analysis.scenes && Array.isArray(analysis.scenes)) {
       const sceneStmt = db.prepare(`
         INSERT INTO scenes (
           story_id, scene_id, title, description, setting, time_of_day, mood, 
-          key_actions, characters, objects, emotions
+          key_actions, characters, objects, emotions, image_url
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       
       for (const scene of analysis.scenes) {
@@ -146,7 +163,8 @@ export function saveStoryAnalysis(
           JSON.stringify(scene.keyActions || []),
           JSON.stringify(scene.characters || []),
           JSON.stringify(scene.objects || []),
-          JSON.stringify(scene.emotions || [])
+          JSON.stringify(scene.emotions || []),
+          scene.imageUrl || null
         )
       }
     }
@@ -179,16 +197,86 @@ export function getAllStories(): Array<{
     created_at: string
   }>
   
-  return stories.map(story => ({
-    id: story.id,
-    title: story.title,
-    story: story.story,
-    analysis: JSON.parse(story.analysis),
-    createdAt: story.created_at
-  }))
+  // Get characters and scenes with image URLs for each story
+  const storiesWithImages = stories.map(story => {
+    const analysis = JSON.parse(story.analysis)
+    
+    // Get characters with image URLs
+    const charStmt = db.prepare(`
+      SELECT name, mentions, description, attributes, relationships, image_url
+      FROM characters
+      WHERE story_id = ?
+      ORDER BY id
+    `)
+    const characters = charStmt.all(story.id) as Array<{
+      name: string
+      mentions: number
+      description: string
+      attributes: string
+      relationships: string
+      image_url: string | null
+    }>
+    
+    // Get scenes with image URLs
+    const sceneStmt = db.prepare(`
+      SELECT scene_id, title, description, setting, time_of_day, mood, key_actions, characters, objects, emotions, image_url
+      FROM scenes
+      WHERE story_id = ?
+      ORDER BY scene_id
+    `)
+    const scenes = sceneStmt.all(story.id) as Array<{
+      scene_id: number
+      title: string
+      description: string
+      setting: string
+      time_of_day: string
+      mood: string
+      key_actions: string
+      characters: string
+      objects: string
+      emotions: string
+      image_url: string | null
+    }>
+    
+    // Merge image URLs into the analysis
+    const updatedAnalysis = {
+      ...analysis,
+      characters: characters.map(char => ({
+        name: char.name,
+        mentions: char.mentions,
+        description: char.description,
+        attributes: JSON.parse(char.attributes),
+        relationships: JSON.parse(char.relationships),
+        imageUrl: char.image_url
+      })),
+      scenes: scenes.map(scene => ({
+        id: scene.scene_id,
+        title: scene.title,
+        description: scene.description,
+        setting: scene.setting,
+        timeOfDay: scene.time_of_day,
+        mood: scene.mood,
+        keyActions: JSON.parse(scene.key_actions),
+        characters: JSON.parse(scene.characters),
+        objects: JSON.parse(scene.objects),
+        emotions: JSON.parse(scene.emotions),
+        imageUrl: scene.image_url
+      }))
+    }
+    
+    return {
+      id: story.id,
+      title: story.title,
+      story: story.story,
+      analysis: updatedAnalysis,
+      createdAt: story.created_at
+    }
+  })
+  
+  return storiesWithImages
 }
 
-// Get a specific story by ID
+// Get a specific story by ID with image URLs
 export function getStoryById(id: number): {
   id: number
   title: string
@@ -212,11 +300,76 @@ export function getStoryById(id: number): {
   
   if (!story) return null
   
+  const analysis = JSON.parse(story.analysis)
+  
+  // Get characters with image URLs
+  const charStmt = db.prepare(`
+    SELECT name, mentions, description, attributes, relationships, image_url
+    FROM characters
+    WHERE story_id = ?
+    ORDER BY id
+  `)
+  const characters = charStmt.all(id) as Array<{
+    name: string
+    mentions: number
+    description: string
+    attributes: string
+    relationships: string
+    image_url: string | null
+  }>
+  
+  // Get scenes with image URLs
+  const sceneStmt = db.prepare(`
+    SELECT scene_id, title, description, setting, time_of_day, mood, key_actions, characters, objects, emotions, image_url
+    FROM scenes
+    WHERE story_id = ?
+    ORDER BY scene_id
+  `)
+  const scenes = sceneStmt.all(id) as Array<{
+    scene_id: number
+    title: string
+    description: string
+    setting: string
+    time_of_day: string
+    mood: string
+    key_actions: string
+    characters: string
+    objects: string
+    emotions: string
+    image_url: string | null
+  }>
+  
+  // Merge image URLs into the analysis
+  const updatedAnalysis = {
+    ...analysis,
+    characters: characters.map(char => ({
+      name: char.name,
+      mentions: char.mentions,
+      description: char.description,
+      attributes: JSON.parse(char.attributes),
+      relationships: JSON.parse(char.relationships),
+      imageUrl: char.image_url
+    })),
+    scenes: scenes.map(scene => ({
+      id: scene.scene_id,
+      title: scene.title,
+      description: scene.description,
+      setting: scene.setting,
+      timeOfDay: scene.time_of_day,
+      mood: scene.mood,
+      keyActions: JSON.parse(scene.key_actions),
+      characters: JSON.parse(scene.characters),
+      objects: JSON.parse(scene.objects),
+      emotions: JSON.parse(scene.emotions),
+      imageUrl: scene.image_url
+    }))
+  }
+  
   return {
     id: story.id,
     title: story.title,
     story: story.story,
-    analysis: JSON.parse(story.analysis),
+    analysis: updatedAnalysis,
     createdAt: story.created_at
   }
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { saveStoryAnalysis } from '@/lib/db-service'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -110,28 +109,24 @@ ${preprocessedStory}`
 
     // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4", // You can change this to "gpt-3.5-turbo" if preferred
+      model: "gpt-4",
       messages: [
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.3, // Lower temperature for more consistent, factual responses
-      max_tokens: 4000, // Adjust based on your needs
-      // Removed response_format parameter as it's not supported with this model
+      temperature: 0.3,
+      max_tokens: 4000,
     })
 
-    // Extract and parse the response
     const content = response.choices[0].message.content || "{}"
     
-    // Try to parse the JSON response
     let analysis: StoryAnalysis;
     try {
       analysis = JSON.parse(content)
     } catch (parseError) {
-      console.error("Error parsing JSON response:")
-      // If parsing fails, try to extract JSON from the response
+      console.error("Error parsing JSON response:", content)
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         analysis = JSON.parse(jsonMatch[0])
@@ -140,13 +135,9 @@ ${preprocessedStory}`
       }
     }
 
-    // Save the analysis to the database (without images)
-    const storyId = saveStoryAnalysis(title || "Untitled Story", story, analysis)
-
-    // Return the analysis without images
     return NextResponse.json({
       ...analysis,
-      id: storyId
+      title: title || "Untitled Story"
     })
   } catch (error) {
     console.error("Error analyzing story with OpenAI:", error)

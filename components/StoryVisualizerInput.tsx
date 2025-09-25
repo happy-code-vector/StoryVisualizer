@@ -39,6 +39,7 @@ export default function StoryVisualizerInput() {
       
       // Store the payload in sessionStorage for retrieval on the visualize page
       sessionStorage.setItem('storyAnalysis', JSON.stringify(payload))
+      setProcessing(false)
       
       // Navigate to the visualize page
       router.push('/visualize')
