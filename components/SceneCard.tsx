@@ -34,7 +34,7 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
         <CardContent className="p-0">
           <div className="grid lg:grid-cols-2 gap-0">
             {/* Image Section */}
-            <div className="relative aspect-video lg:aspect-square bg-gradient-to-br from-primary/10 to-accent/10">
+            <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-accent/10">
               <img
                 src={scene.imageUrl || "/placeholder.svg"}
                 alt={scene.title}
@@ -51,7 +51,9 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
 
               {/* Scene number overlay */}
               <div className="absolute top-4 left-4">
-                <Badge className="bg-black/80 text-white border-0">Scene {scene.id}</Badge>
+                <Badge className="bg-black/80 text-white border-0 text-sm">
+                  Scene {scene.id}
+                </Badge>
               </div>
 
               {/* View details overlay */}
@@ -63,10 +65,10 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
                       View Full Scene
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <MapPin className="w-5 h-5" />
+                      <DialogTitle className="flex items-center gap-2 text-2xl">
+                        <MapPin className="w-6 h-6" />
                         {scene.title}
                       </DialogTitle>
                     </DialogHeader>
@@ -82,16 +84,18 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-semibold mb-2 flex items-center gap-2">
-                              <MapPin className="w-4 h-4" />
+                            <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
+                              <MapPin className="w-5 h-5" />
                               Setting & Atmosphere
                             </h4>
-                            <p className="text-muted-foreground leading-relaxed">{scene.description}</p>
+                            <p className="text-muted-foreground leading-relaxed text-base">
+                              {scene.description}
+                            </p>
                           </div>
 
                           {scene.analysis?.atmosphere && (
                             <div>
-                              <h4 className="font-semibold mb-2">Full Description</h4>
+                              <h4 className="font-semibold mb-2 text-lg">Full Description</h4>
                               <p className="text-sm text-muted-foreground leading-relaxed">
                                 {scene.analysis.atmosphere}
                               </p>
@@ -101,23 +105,23 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
 
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-semibold mb-2 flex items-center gap-2">
-                              <Palette className="w-4 h-4" />
+                            <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
+                              <Palette className="w-5 h-5" />
                               Scene Details
                             </h4>
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <MapPin className="w-3 h-3 text-muted-foreground" />
-                                <span className="text-sm">{scene.setting}</span>
+                                <MapPin className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-base">{scene.setting}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Palette className="w-3 h-3 text-muted-foreground" />
-                                <span className="text-sm">{scene.mood}</span>
+                                <Palette className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-base">{scene.mood}</span>
                               </div>
                               {scene.analysis?.timeOfDay && scene.analysis.timeOfDay !== "unspecified time" && (
                                 <div className="flex items-center gap-2">
-                                  <Clock className="w-3 h-3 text-muted-foreground" />
-                                  <span className="text-sm">{scene.analysis.timeOfDay}</span>
+                                  <Clock className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-base">{scene.analysis.timeOfDay}</span>
                                 </div>
                               )}
                             </div>
@@ -125,13 +129,13 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
 
                           {scene.characters.length > 0 && (
                             <div>
-                              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                <Users className="w-4 h-4" />
+                              <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
+                                <Users className="w-5 h-5" />
                                 Characters Present
                               </h4>
                               <div className="flex flex-wrap gap-2">
                                 {scene.characters.map((char, i) => (
-                                  <Badge key={i} variant="secondary">
+                                  <Badge key={i} variant="secondary" className="text-base px-2 py-1">
                                     {char}
                                   </Badge>
                                 ))}
@@ -141,13 +145,13 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
 
                           {scene.analysis?.keyActions && scene.analysis.keyActions.length > 0 && (
                             <div>
-                              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                <Zap className="w-4 h-4" />
+                              <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
+                                <Zap className="w-5 h-5" />
                                 Key Actions
                               </h4>
                               <div className="flex flex-wrap gap-2">
                                 {scene.analysis.keyActions.map((action: string, i: number) => (
-                                  <Badge key={i} variant="outline" className="text-xs">
+                                  <Badge key={i} variant="outline" className="text-base px-2 py-1">
                                     {action}
                                   </Badge>
                                 ))}
@@ -163,25 +167,29 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
             </div>
 
             {/* Content Section */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-3">
               <div>
-                <h3 className="text-xl font-semibold mb-2">{scene.title}</h3>
-                <p className="text-muted-foreground leading-relaxed line-clamp-3">{scene.description}</p>
+                <h3 className="text-base font-semibold mb-1 truncate">
+                  {scene.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                  {scene.description}
+                </p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
+                  <Badge variant="secondary" className="flex items-center gap-1 text-xs px-2 py-0.5">
+                    <MapPin className="w-2.5 h-2.5" />
                     {scene.setting}
                   </Badge>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <Palette className="w-3 h-3" />
+                  <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5">
+                    <Palette className="w-2.5 h-2.5" />
                     {scene.mood}
                   </Badge>
                   {scene.analysis?.timeOfDay && scene.analysis.timeOfDay !== "unspecified time" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5">
+                      <Clock className="w-2.5 h-2.5" />
                       {scene.analysis.timeOfDay}
                     </Badge>
                   )}
@@ -189,28 +197,28 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
 
                 {scene.characters.length > 0 && (
                   <div>
-                    <span className="text-sm font-medium flex items-center gap-1 mb-1">
-                      <Users className="w-3 h-3" />
+                    <span className="text-xs font-medium flex items-center gap-1 mb-1">
+                      <Users className="w-2.5 h-2.5" />
                       Characters:
                     </span>
-                    <span className="text-sm text-muted-foreground">{scene.characters.join(", ")}</span>
+                    <span className="text-xs text-muted-foreground">{scene.characters.join(", ")}</span>
                   </div>
                 )}
 
                 {scene.analysis?.keyActions && scene.analysis.keyActions.length > 0 && (
                   <div>
-                    <span className="text-sm font-medium flex items-center gap-1 mb-1">
-                      <Zap className="w-3 h-3" />
+                    <span className="text-xs font-medium flex items-center gap-1 mb-1">
+                      <Zap className="w-2.5 h-2.5" />
                       Key Actions:
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {scene.analysis.keyActions.slice(0, 3).map((action: string, i: number) => (
-                        <Badge key={i} variant="outline" className="text-xs">
+                        <Badge key={i} variant="outline" className="text-xs px-1.5 py-0.5">
                           {action}
                         </Badge>
                       ))}
                       {scene.analysis.keyActions.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                           +{scene.analysis.keyActions.length - 3}
                         </Badge>
                       )}

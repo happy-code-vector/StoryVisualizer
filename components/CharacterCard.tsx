@@ -50,10 +50,10 @@ export default function CharacterCard({ character, index }: CharacterCardProps) 
                   View Details
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-3xl max-h-[90vh]"> {/* Made modal larger */}
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                  <DialogTitle className="flex items-center gap-2 text-2xl"> {/* Larger title */}
+                    <User className="w-6 h-6" />
                     {character.name}
                   </DialogTitle>
                 </DialogHeader>
@@ -67,19 +67,21 @@ export default function CharacterCard({ character, index }: CharacterCardProps) 
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-semibold mb-2">Description</h4>
+                      <h4 className="font-semibold mb-2 text-lg">Description</h4> {/* Larger text */}
                       <p className="text-muted-foreground leading-relaxed">{character.description}</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2">Story Presence</h4>
-                      <Badge variant="secondary">{character.mentions} mentions throughout the story</Badge>
+                      <h4 className="font-semibold mb-2 text-lg">Story Presence</h4> {/* Larger text */}
+                      <Badge variant="secondary" className="text-base px-3 py-1"> {/* Larger badge */}
+                        {character.mentions} mentions throughout the story
+                      </Badge>
                     </div>
                     {character.attributes.length > 0 && (
                       <div>
-                        <h4 className="font-semibold mb-2">Attributes</h4>
+                        <h4 className="font-semibold mb-2 text-lg">Attributes</h4> {/* Larger text */}
                         <div className="flex flex-wrap gap-2">
                           {character.attributes.map((attr, i) => (
-                            <Badge key={i} variant="outline">
+                            <Badge key={i} variant="outline" className="text-base px-2 py-1"> {/* Larger badge */}
                               {attr}
                             </Badge>
                           ))}
@@ -93,23 +95,27 @@ export default function CharacterCard({ character, index }: CharacterCardProps) 
           </div>
         </div>
 
-        <div className="p-4 space-y-3">
+        <div className="p-3 space-y-2"> {/* Reduced padding */}
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg">{character.name}</h3>
+            <h3 className="font-semibold text-base truncate"> {/* Smaller font */}
+              {character.name}
+            </h3>
             <Badge variant="secondary" className="text-xs">
               {character.mentions}x
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{character.description}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2"> {/* Smaller text */}
+            {character.description}
+          </p>
           {character.attributes.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {character.attributes.slice(0, 2).map((attr, i) => (
-                <Badge key={i} variant="outline" className="text-xs">
+                <Badge key={i} variant="outline" className="text-xs px-1.5 py-0.5"> {/* Smaller badge */}
                   {attr}
                 </Badge>
               ))}
               {character.attributes.length > 2 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs px-1.5 py-0.5"> {/* Smaller badge */}
                   +{character.attributes.length - 2}
                 </Badge>
               )}
