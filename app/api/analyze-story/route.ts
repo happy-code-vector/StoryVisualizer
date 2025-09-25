@@ -130,7 +130,7 @@ ${preprocessedStory}`
     try {
       analysis = JSON.parse(content)
     } catch (parseError) {
-      console.error("Error parsing JSON response:", content)
+      console.error("Error parsing JSON response:")
       // If parsing fails, try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (jsonMatch) {

@@ -1,5 +1,5 @@
-import StoryVisualizerApp from "../components/StoryVisualizerApp"
+import { redirect } from 'next/navigation'
 
 export default function Page() {
-  return <StoryVisualizerApp />
+  redirect('/story')
 }

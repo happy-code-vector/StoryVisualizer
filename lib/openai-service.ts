@@ -38,7 +38,6 @@ export function preprocessText(text: string): string {
     .trim() // Trim whitespace
 }
 
-// Main function to analyze story by calling our API route
 export async function analyzeStoryWithOpenAI(story: string, title?: string): Promise<StoryAnalysis> {
   try {
     const response = await fetch('/api/analyze-story', {
