@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { saveStoryAnalysis } from '@/lib/db-service'
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// Define the response structure
 interface Character {
   name: string
   mentions: number
@@ -33,7 +32,6 @@ interface StoryAnalysis {
   scenes: Scene[]
 }
 
-// Preprocessing function
 function preprocessText(text: string): string {
   return text
     .replace(/\r\n/g, "\n") // Normalize line endings
@@ -44,16 +42,14 @@ function preprocessText(text: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { story } = await request.json()
+    const { story, title } = await request.json()
     
     if (!story) {
       return NextResponse.json({ error: 'Story content is required' }, { status: 400 })
     }
 
-    // Preprocess the story text
     const preprocessedStory = preprocessText(story)
 
-    // Create the prompt for OpenAI
     const prompt = `You are an expert literary analyst AI. Your task is to analyze a story and extract detailed information about characters, scenes, and settings. Process the story and provide a structured JSON response with the following information:
 
 1. Characters:
@@ -107,9 +103,8 @@ Return ONLY a valid JSON object with this exact structure:
 Story to analyze:
 ${preprocessedStory}`
 
-    // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4", // You can change this to "gpt-3.5-turbo" if preferred
+      model: "gpt-4",
       messages: [
         {
           role: "user",
@@ -120,10 +115,8 @@ ${preprocessedStory}`
       max_tokens: 4000,
     })
 
-    // Extract and parse the response
     const content = response.choices[0].message.content || "{}"
     
-    // Try to parse the JSON response
     let analysis: StoryAnalysis;
     try {
       analysis = JSON.parse(content)
@@ -138,7 +131,13 @@ ${preprocessedStory}`
       }
     }
 
-    return NextResponse.json(analysis)
+    // Save the analysis to the database
+    const storyId = saveStoryAnalysis(title || "Untitled Story", story, analysis)
+
+    return NextResponse.json({
+      ...analysis,
+      id: storyId
+    })
   } catch (error) {
     console.error("Error analyzing story with OpenAI:", error)
     return NextResponse.json({ error: "Failed to analyze story with OpenAI" }, { status: 500 })

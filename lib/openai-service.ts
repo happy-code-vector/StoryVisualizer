@@ -26,6 +26,7 @@ export interface Scene {
 export interface StoryAnalysis {
   characters: Character[]
   scenes: Scene[]
+  id?: number
 }
 
 // Preprocessing function
@@ -38,14 +39,14 @@ export function preprocessText(text: string): string {
 }
 
 // Main function to analyze story by calling our API route
-export async function analyzeStoryWithOpenAI(story: string): Promise<StoryAnalysis> {
+export async function analyzeStoryWithOpenAI(story: string, title?: string): Promise<StoryAnalysis> {
   try {
     const response = await fetch('/api/analyze-story', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ story }),
+      body: JSON.stringify({ story, title }),
     })
 
     if (!response.ok) {

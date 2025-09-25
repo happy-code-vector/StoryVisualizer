@@ -5,7 +5,7 @@ import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Progress } from "./ui/progress"
-import { Sparkles, BookOpen, Users, ImageIcon, Wand2, Download } from "lucide-react"
+import { Sparkles, BookOpen, Users, ImageIcon, Wand2, Download, History } from "lucide-react"
 import CharacterCard from "./CharacterCard"
 import SceneCard from "./SceneCard"
 import { analyzeStoryWithOpenAI } from "../lib/openai-service"
@@ -44,6 +44,7 @@ export default function StoryVisualizerApp() {
     progress: 0,
     isProcessing: false,
   })
+  const [storyTitle, setStoryTitle] = useState("")
 
   const processStory = async () => {
     if (!story.trim()) return
@@ -52,7 +53,7 @@ export default function StoryVisualizerApp() {
 
     try {
       console.log("[OpenAI] Starting story analysis...")
-      const analysis = await analyzeStoryWithOpenAI(story)
+      const analysis = await analyzeStoryWithOpenAI(story, storyTitle || "Untitled Story")
       
       setProcessing({ step: "Processing results...", progress: 80, isProcessing: true })
       
@@ -94,6 +95,7 @@ export default function StoryVisualizerApp() {
 
   const resetApp = () => {
     setStory("")
+    setStoryTitle("")
     setCharacters([])
     setScenes([])
     setProcessing({ step: "", progress: 0, isProcessing: false })
@@ -143,7 +145,7 @@ export default function StoryVisualizerApp() {
         style={{ animationDelay: "4s" }}
       />
 
-      <div className="relative z-10 container mx-auto px-4 py-88">
+      <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -172,31 +174,56 @@ export default function StoryVisualizerApp() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  placeholder="Once upon a time, in a land far away..."
-                  value={story}
-                  onChange={(e) => setStory(e.target.value)}
-                  className="min-h-[200px] text-base leading-relaxed resize-none border-border/50 focus:border-primary/50"
-                />
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Story Title (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="My Amazing Story"
+                      value={storyTitle}
+                      onChange={(e) => setStoryTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-border/50 rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Story Content</label>
+                    <Textarea
+                      placeholder="Once upon a time, in a land far away..."
+                      value={story}
+                      onChange={(e) => setStory(e.target.value)}
+                      className="min-h-[200px] text-base leading-relaxed resize-none border-border/50 focus:border-primary/50"
+                    />
+                  </div>
+                </div>
                 <div className="flex items-center justify-between mt-4">
                   <span className="text-sm text-muted-foreground">{story.length} characters</span>
-                  <Button
-                    onClick={processStory}
-                    disabled={!story.trim() || processing.isProcessing}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
-                    {processing.isProcessing ? (
-                      <>
-                        <Wand2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Visualize Story
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => window.location.href = '/history'}
+                      className="flex items-center gap-2"
+                    >
+                      <History className="w-4 h-4" />
+                      History
+                    </Button>
+                    <Button
+                      onClick={processStory}
+                      disabled={!story.trim() || processing.isProcessing}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      {processing.isProcessing ? (
+                        <>
+                          <Wand2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Visualize Story
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -263,8 +290,18 @@ export default function StoryVisualizerApp() {
           <div className="max-w-6xl mx-auto">
             {/* Header with Actions */}
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-3xl font-bold gradient-text">Story Analysis Complete</h2>
+              <h2 className="text-3xl font-bold gradient-text">
+                {storyTitle || "Story Analysis Complete"}
+              </h2>
               <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/history'}
+                  className="flex items-center gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  History
+                </Button>
                 <Button variant="outline" onClick={exportResults} className="flex items-center gap-2 bg-transparent">
                   <Download className="w-4 h-4" />
                   Export
