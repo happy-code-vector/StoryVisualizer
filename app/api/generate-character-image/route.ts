@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server'
+import {fal} from '@fal-ai/client'
+
+fal.config({
+    credentials: process.env.FAL_AI_API_KEY,
+})
 
 async function generateCharacterImage(character: {
   name: string
   description: string
   attributes: string[]
 }): Promise<string> {
-  const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY
-  
-  if (!FAL_AI_API_KEY) {
-    throw new Error('FAL_AI_API_KEY is not set')
-  }
 
   try {
     const prompt = `A portrait of ${character.name}, ${character.description.toLowerCase()}, ${
@@ -18,28 +18,18 @@ async function generateCharacterImage(character: {
         : 'detailed character design'
     }, high quality, detailed, ultra realistic style`
 
-    const response = await fetch('https://fal.run/fal-ai/flux/dev', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_AI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const response = await fal.subscribe('/fal-ai/flux/dev', {
+      input:{
         prompt: prompt,
         image_size: 'square',
         num_inference_steps: 25,
         guidance_scale: 7.5,
         num_images: 1,
         enable_safety_checker: true
-      }),
+      },
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Fal AI API error: ${response.status} - ${errorText}`)
-    }
-
-    const data = await response.json()
+    const data = await response.data
     
     if (data.images && data.images.length > 0) {
       return data.images[0].url

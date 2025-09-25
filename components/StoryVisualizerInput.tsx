@@ -30,14 +30,12 @@ export default function StoryVisualizerInput() {
       setProgress(40)
       console.log("[OpenAI] Analysis complete, navigating to visualize page...")
       
-      // Navigate to the visualize page with the analysis result
       const payload = {
         title: storyTitle || "Untitled Story",
         story: story,
         analysis: analysis
       }
       
-      // Store the payload in sessionStorage for retrieval on the visualize page
       sessionStorage.setItem('storyAnalysis', JSON.stringify(payload))
       setProcessing(false)
       
