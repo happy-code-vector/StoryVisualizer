@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 
-// Function to generate a character image using Fal AI directly
 async function generateCharacterImage(character: {
   name: string
   description: string
@@ -13,14 +12,12 @@ async function generateCharacterImage(character: {
   }
 
   try {
-    // Create a prompt for the character image
     const prompt = `A portrait of ${character.name}, ${character.description.toLowerCase()}, ${
       character.attributes.length > 0 
         ? character.attributes.join(', ') 
         : 'detailed character design'
     }, high quality, detailed, ultra realistic style`
 
-    // Call the Fal AI API for text-to-image generation (flux dev model)
     const response = await fetch('https://fal.run/fal-ai/flux/dev', {
       method: 'POST',
       headers: {
@@ -44,7 +41,6 @@ async function generateCharacterImage(character: {
 
     const data = await response.json()
     
-    // Return the generated image URL
     if (data.images && data.images.length > 0) {
       return data.images[0].url
     } else {

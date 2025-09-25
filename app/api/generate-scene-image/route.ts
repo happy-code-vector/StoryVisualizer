@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 
-// Function to generate a scene image using Fal AI directly
 async function generateSceneImage(scene: {
   setting: string
   timeOfDay: string
@@ -14,10 +13,8 @@ async function generateSceneImage(scene: {
   }
 
   try {
-    // Create a prompt for the scene image
     const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, cinematic, detailed environment, high quality, ultra realistic style`
 
-    // Call the Fal AI API for text-to-image generation (flux dev model)
     const response = await fetch('https://fal.run/fal-ai/flux/dev', {
       method: 'POST',
       headers: {
@@ -26,7 +23,7 @@ async function generateSceneImage(scene: {
       },
       body: JSON.stringify({
         prompt: prompt,
-        image_size: 'landscape',
+        image_size: 'landscape_16_9',
         num_inference_steps: 25,
         guidance_scale: 7.5,
         num_images: 1,
