@@ -6,11 +6,9 @@ import { Textarea } from "./ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Progress } from "./ui/progress"
 import { Sparkles, BookOpen, Users, ImageIcon, Wand2, Download } from "lucide-react"
-import { TextProcessor } from "../lib/text-processor"
-import { CharacterExtractor } from "../lib/character-extractor"
-import { SceneAnalyzer } from "../lib/scene-analyzer"
 import CharacterCard from "./CharacterCard"
 import SceneCard from "./SceneCard"
+import { analyzeStoryWithOpenAI } from "../lib/openai-service"
 
 interface Character {
   name: string
@@ -50,68 +48,48 @@ export default function StoryVisualizerApp() {
   const processStory = async () => {
     if (!story.trim()) return
 
-    setProcessing({ step: "Analyzing text structure...", progress: 10, isProcessing: true })
-    await new Promise((resolve) => setTimeout(resolve, 800))
+    setProcessing({ step: "Analyzing story with AI...", progress: 10, isProcessing: true })
 
-    console.log("[v0] Starting text preprocessing...")
-    const preprocessedText = TextProcessor.preprocessText(story)
+    try {
+      console.log("[OpenAI] Starting story analysis...")
+      const analysis = await analyzeStoryWithOpenAI(story)
+      
+      setProcessing({ step: "Processing results...", progress: 80, isProcessing: true })
+      
+      // Process characters
+      const processedCharacters: Character[] = analysis.characters.map((char) => ({
+        name: char.name,
+        description: char.description,
+        mentions: char.mentions,
+        attributes: char.attributes,
+        imageUrl: `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(
+          `${char.name} - ${char.description.substring(0, 100)}`
+        )}`,
+      }))
 
-    setProcessing({ step: "Identifying characters...", progress: 30, isProcessing: true })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    console.log("[v0] Extracting characters...")
-    const extractedCharacters = CharacterExtractor.extractCharacters(preprocessedText)
-    console.log(
-      "[v0] Found characters:",
-      extractedCharacters.map((c) => c.name),
-    )
-
-    const processedCharacters: Character[] = extractedCharacters.map((char) => ({
-      name: char.name,
-      description: CharacterExtractor.generateCharacterDescription(char),
-      mentions: char.mentions,
-      attributes: char.attributes,
-      imageUrl: `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(
-        `${char.name} - ${CharacterExtractor.generateCharacterDescription(char)}`,
-      )}`,
-    }))
-
-    setProcessing({ step: "Breaking down scenes...", progress: 50, isProcessing: true })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    console.log("[v0] Extracting scenes...")
-    const extractedScenes = TextProcessor.extractScenes(preprocessedText)
-    console.log("[v0] Found scenes:", extractedScenes.length)
-
-    setProcessing({ step: "Analyzing scene details...", progress: 70, isProcessing: true })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const characterNames = processedCharacters.map((c) => c.name)
-    const processedScenes: Scene[] = extractedScenes.map((scene) => {
-      const analysis = SceneAnalyzer.analyzeScene(scene.content, characterNames)
-      console.log(`[v0] Scene ${scene.id} analysis:`, analysis)
-
-      return {
+      // Process scenes
+      const processedScenes: Scene[] = analysis.scenes.map((scene) => ({
         id: scene.id,
         title: scene.title,
-        description: analysis.atmosphere || scene.content.substring(0, 200) + "...",
-        characters: analysis.characters,
-        setting: analysis.setting,
-        mood: analysis.mood,
-        analysis,
+        description: scene.description,
+        characters: scene.characters,
+        setting: scene.setting,
+        mood: scene.mood,
+        analysis: scene,
         imageUrl: `/placeholder.svg?height=600&width=800&query=${encodeURIComponent(
-          SceneAnalyzer.generateScenePrompt(analysis),
+          `${scene.setting} ${scene.timeOfDay} ${scene.mood}`
         )}`,
-      }
-    })
+      }))
 
-    setProcessing({ step: "Generating visualizations...", progress: 90, isProcessing: true })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    console.log("[v0] Processing complete!")
-    setCharacters(processedCharacters)
-    setScenes(processedScenes)
-    setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
+      setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
+      console.log("[OpenAI] Processing complete!")
+      setCharacters(processedCharacters)
+      setScenes(processedScenes)
+    } catch (error) {
+      console.error("[OpenAI] Error analyzing story:", error)
+      setProcessing({ step: "Error occurred", progress: 0, isProcessing: false })
+      // You might want to show an error message to the user here
+    }
   }
 
   const resetApp = () => {
@@ -165,7 +143,7 @@ export default function StoryVisualizerApp() {
         style={{ animationDelay: "4s" }}
       />
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="relative z-10 container mx-auto px-4 py-88">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
