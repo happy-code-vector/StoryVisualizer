@@ -55,18 +55,17 @@ export default function StoryVisualizerApp() {
       console.log("[OpenAI] Starting story analysis...")
       const analysis = await analyzeStoryWithOpenAI(story, storyTitle || "Untitled Story")
       
-      setProcessing({ step: "Processing results...", progress: 80, isProcessing: true })
+      setProcessing({ step: "Processing results...", progress: 30, isProcessing: true })
       
-      // Process characters - use image URLs from the analysis
+      // Set characters and scenes without images initially
       const processedCharacters: Character[] = analysis.characters.map((char) => ({
         name: char.name,
         description: char.description,
         mentions: char.mentions,
         attributes: char.attributes,
-        imageUrl: char.imageUrl || `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(char.name)}`,
+        imageUrl: undefined, // Will be generated later
       }))
 
-      // Process scenes - use image URLs from the analysis
       const processedScenes: Scene[] = analysis.scenes.map((scene) => ({
         id: scene.id,
         title: scene.title,
@@ -75,18 +74,111 @@ export default function StoryVisualizerApp() {
         setting: scene.setting,
         mood: scene.mood,
         analysis: scene,
-        imageUrl: scene.imageUrl || `/placeholder.svg?height=600&width=800&text=${encodeURIComponent(scene.setting)}`,
+        imageUrl: undefined, // Will be generated later
       }))
 
-      setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
-      console.log("[OpenAI] Processing complete!")
       setCharacters(processedCharacters)
       setScenes(processedScenes)
+      
+      // Generate images for characters and scenes
+      await generateImages(processedCharacters, processedScenes)
     } catch (error) {
       console.error("[OpenAI] Error analyzing story:", error)
       setProcessing({ step: "Error occurred", progress: 0, isProcessing: false })
-      // You might want to show an error message to the user here
     }
+  }
+
+  const generateImages = async (characters: Character[], scenes: Scene[]) => {
+    setProcessing({ step: "Generating character images...", progress: 40, isProcessing: true })
+    
+    // Generate character images
+    const charactersWithImages = await Promise.all(
+      characters.map(async (character, index) => {
+        try {
+          const response = await fetch('/api/generate-character-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(character),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.error || 'Failed to generate character image')
+          }
+
+          const { imageUrl } = await response.json()
+          
+          // Update progress
+          const progress = 40 + Math.floor((index + 1) / characters.length * 20)
+          setProcessing({ 
+            step: `Generating character images (${index + 1}/${characters.length})...`, 
+            progress, 
+            isProcessing: true 
+          })
+          
+          return {
+            ...character,
+            imageUrl
+          }
+        } catch (error) {
+          console.error(`Error generating image for character ${character.name}:`, error)
+          return {
+            ...character,
+            imageUrl: `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`
+          }
+        }
+      })
+    )
+
+    setCharacters(charactersWithImages)
+    setProcessing({ step: "Generating scene images...", progress: 60, isProcessing: true })
+    
+    // Generate scene images
+    const scenesWithImages = await Promise.all(
+      scenes.map(async (scene, index) => {
+        try {
+          const response = await fetch('/api/generate-scene-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(scene),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.error || 'Failed to generate scene image')
+          }
+
+          const { imageUrl } = await response.json()
+          
+          // Update progress
+          const progress = 60 + Math.floor((index + 1) / scenes.length * 30)
+          setProcessing({ 
+            step: `Generating scene images (${index + 1}/${scenes.length})...`, 
+            progress, 
+            isProcessing: true 
+          })
+          
+          return {
+            ...scene,
+            imageUrl
+          }
+        } catch (error) {
+          console.error(`Error generating image for scene ${scene.title}:`, error)
+          return {
+            ...scene,
+            imageUrl: `/placeholder.svg?height=600&width=800&text=${encodeURIComponent(scene.setting)}`
+          }
+        }
+      })
+    )
+
+    setScenes(scenesWithImages)
+    setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
+    console.log("[Image Generation] Complete!")
   }
 
   const resetApp = () => {
