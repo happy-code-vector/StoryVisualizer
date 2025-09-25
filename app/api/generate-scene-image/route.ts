@@ -5,7 +5,7 @@ async function generateSceneImage(scene: {
   timeOfDay: string
   mood: string
   description: string
-  characterImages?: { name: string; url: string }[]
+  characterImages?: string[]
 }): Promise<string> {
 
   const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY
@@ -17,6 +17,7 @@ async function generateSceneImage(scene: {
   try {
     const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, cinematic, detailed environment, high quality, ultra realistic style`
     
+    console.log(scene)
     // If we have character images, we'll use image-to-image generation
     if (scene.characterImages && scene.characterImages.length > 0) {
       console.log(`[SceneImage] Generating scene image with ${scene.characterImages.length} character references`)
@@ -48,7 +49,7 @@ async function generateSceneImage(scene: {
       if (data.images && data.images.length > 0) {
         return data.images[0].url
       } else {
-        throw new Error('No image generated')
+        throw new Error(data)
       }
     } else {
       console.log("[SceneImage] Generating scene image without character references")

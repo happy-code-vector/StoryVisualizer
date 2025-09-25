@@ -135,9 +135,7 @@ export default function VisualizePage() {
     
     const scenesWithImages = await Promise.all(
       scenes.map(async (scene, index) => {
-        try {
-          console.log(`[VisualizePage] Generating image for scene: ${scene.title}`)
-          
+        try {          
           const characterImages = scene.characters
             .map(characterName => {
               const character = charactersWithImages.find(c => c.name === characterName);
@@ -162,7 +160,6 @@ export default function VisualizePage() {
           }
 
           const { imageUrl } = await response.json()
-          console.log(`[VisualizePage] Generated image for scene ${scene.title}:`, imageUrl)
           
           const progress = 50 + Math.floor((index + 1) / scenes.length * 40)
           setProcessing({ 
@@ -211,13 +208,11 @@ export default function VisualizePage() {
       }
       
       const result = await response.json()
-      console.log('[VisualizePage] Story analysis saved with ID:', result.id)
     } catch (error) {
       console.error('[VisualizePage] Error saving story analysis to database:', error)
     }
     
     setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
-    console.log("[VisualizePage] Image generation complete!")
   }
 
   const exportResults = () => {

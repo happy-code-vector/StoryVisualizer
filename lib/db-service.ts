@@ -94,18 +94,12 @@ function initializeDatabase() {
       FOREIGN KEY (story_id) REFERENCES stories (id)
     )
   `)
-
-  // Add image_url column to scenes table if it doesn't exist
   try {
     db.exec(`ALTER TABLE scenes ADD COLUMN image_url TEXT`)
   } catch (error) {
-    // Column already exists, ignore the error
   }
-
-  console.log('Database initialized')
 }
 
-// Save a story and its analysis with image URLs
 export function saveStoryAnalysis(
   title: string,
   story: string,
