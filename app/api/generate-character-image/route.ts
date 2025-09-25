@@ -17,7 +17,7 @@ async function generateCharacterImage(character: {
       character.attributes.length > 0 
         ? character.attributes.join(', ') 
         : 'detailed character design'
-    }, high quality, detailed, ultra realistic style`
+    }, high quality, detailed, ultra realistic style, professional portrait photography`
 
     const response = await fetch('https://fal.run/fal-ai/flux/dev', {
       method: 'POST',
@@ -26,21 +26,23 @@ async function generateCharacterImage(character: {
           'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: prompt,
-        image_size: 'square',
-        num_inference_steps: 25,
-        guidance_scale: 7.5,
-        num_images: 1,
-        enable_safety_checker: true
-      }),
+          prompt: prompt,
+          image_size: 'square',
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          num_images: 1,
+          enable_safety_checker: true
+      })
     })
 
     if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Fal AI API error: ${response.status} - ${errorText}`)
-      }
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.message || errorData.error || `Fal AI API error: ${response.status} - ${response.statusText}`;
+      console.error('[CharacterImage] Fal AI API error response:', errorData);
+      throw new Error(errorMessage);
+    }
 
-      const data = await response.json()
+    const data = await response.json()
     
     if (data.images && data.images.length > 0) {
       return data.images[0].url
