@@ -17,7 +17,7 @@ async function generateCharacterImage(character: {
       character.attributes.length > 0 
         ? character.attributes.join(', ') 
         : 'detailed character design'
-    }, high quality, detailed, ultra realistic style, professional portrait photography`
+    }, high quality, detailed, ultra realistic style`
 
     const response = await fetch('https://fal.run/fal-ai/flux/dev', {
       method: 'POST',

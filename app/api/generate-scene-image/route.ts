@@ -15,7 +15,7 @@ async function generateSceneImage(scene: {
   }
 
   try {
-    const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, cinematic, detailed environment, high quality, ultra realistic style`
+    const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, detailed environment, high quality, ultra realistic style`
     
     console.log(scene)
     // If we have character images, we'll use image-to-image generation
@@ -31,11 +31,11 @@ async function generateSceneImage(scene: {
         body: JSON.stringify({
             image_urls: scene.characterImages,
             prompt: prompt,
-            // strength: 0.7,
-            // num_inference_steps: 30,
-            // guidance_scale: 7.5,
-            // num_images: 1,
-            // enable_safety_checker: true
+            strength: 0,
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+            num_images: 1,
+            enable_safety_checker: true
         })
       })
 
