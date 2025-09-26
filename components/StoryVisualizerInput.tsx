@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
@@ -8,13 +8,55 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Progress } from "./ui/progress"
 import { Sparkles, BookOpen, Users, ImageIcon, Wand2, History } from "lucide-react"
 import { analyzeStoryWithOpenAI } from "../lib/openai-service"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 export default function StoryVisualizerInput() {
   const [story, setStory] = useState("")
   const [storyTitle, setStoryTitle] = useState("")
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [characterModel, setCharacterModel] = useState("nano-banana")
+  const [sceneModel, setSceneModel] = useState("flux-dev")
+  const [models, setModels] = useState<{character: any[], scene: any[]}>({character: [], scene: []})
   const router = useRouter()
+
+  // Fetch available models
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await fetch('/api/models')
+        const data = await response.json()
+        
+        if (data.characterModels && data.sceneModels) {
+          setModels({
+            character: data.characterModels,
+            scene: data.sceneModels
+          })
+        } else if (data.models) {
+          // If only models array is returned, filter by type
+          setModels({
+            character: data.models.filter((m: any) => m.type === 'character'),
+            scene: data.models.filter((m: any) => m.type === 'scene')
+          })
+        } else {
+          // Fallback to default models
+          setModels({
+            character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/"}],
+            scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev"}]
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching models:", error)
+        // Set default models if fetch fails
+        setModels({
+          character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/"}],
+          scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev"}]
+        })
+      }
+    }
+    
+    fetchModels()
+  }, [])
 
   const processStory = async () => {
     if (!story.trim()) return
@@ -33,7 +75,9 @@ export default function StoryVisualizerInput() {
       const payload = {
         title: storyTitle || "Untitled Story",
         story: story,
-        analysis: analysis
+        analysis: analysis,
+        characterModel: characterModel,
+        sceneModel: sceneModel
       }
       
       sessionStorage.setItem('storyAnalysis', JSON.stringify(payload))
@@ -109,6 +153,41 @@ export default function StoryVisualizerInput() {
                     onChange={(e) => setStory(e.target.value)}
                     className="min-h-[200px] text-base leading-relaxed resize-none border-border/50 focus:border-primary/50"
                   />
+                </div>
+                
+                {/* Model Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Character Generation Model</label>
+                    <Select value={characterModel} onValueChange={setCharacterModel}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select character model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.character.map((model: any) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Scene Generation Model</label>
+                    <Select value={sceneModel} onValueChange={setSceneModel}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select scene model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.scene.map((model: any) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4">

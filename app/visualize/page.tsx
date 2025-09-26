@@ -41,6 +41,8 @@ interface StoryAnalysis {
     characters: Character[]
     scenes: Scene[]
   }
+  characterModel?: string
+  sceneModel?: string
 }
 
 export default function VisualizePage() {
@@ -100,7 +102,10 @@ export default function VisualizePage() {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(character),
+            body: JSON.stringify({
+              character,
+              modelName: storyAnalysis?.characterModel || 'nano-banana'
+            }),
           })
 
           if (!response.ok) {
@@ -152,8 +157,11 @@ export default function VisualizePage() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              ...scene,
-              characterImages // Pass character images to the scene generation
+              scene: {
+                ...scene,
+                characterImages // Pass character images to the scene generation
+              },
+              modelName: storyAnalysis?.sceneModel || 'flux-dev'
             }),
           })
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getModelByName } from '../../../lib/supabase-service'
 
 async function generateSceneImage(scene: {
   setting: string
@@ -6,13 +7,17 @@ async function generateSceneImage(scene: {
   mood: string
   description: string
   characterImages?: string[]
-}): Promise<string> {
+}, modelName: string = 'flux-dev'): Promise<string> {
 
   const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY
   
   if (!FAL_AI_API_KEY) {
     throw new Error('FAL_AI_API_KEY is not set')
   }
+
+  // Get the model link from the database
+  const model = await getModelByName(modelName)
+  const modelLink = model?.link || 'https://fal.run/fal-ai/flux/dev'
 
   try {
     const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, detailed environment, high quality, ultra realistic style`
@@ -56,7 +61,7 @@ async function generateSceneImage(scene: {
     } else {
       console.log("[SceneImage] Generating scene image without character references")
       
-      const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+      const response = await fetch(modelLink, {
         method: 'POST',
         headers: {
             'Authorization': `Key ${FAL_AI_API_KEY}`,
@@ -95,13 +100,14 @@ async function generateSceneImage(scene: {
 
 export async function POST(request: Request) {
   try {
-    const scene = await request.json()
+    const body = await request.json()
+    const { scene, modelName } = body
     
     if (!scene) {
       return NextResponse.json({ error: 'Scene data is required' }, { status: 400 })
     }
 
-    const imageUrl = await generateSceneImage(scene)
+    const imageUrl = await generateSceneImage(scene, modelName)
     return NextResponse.json({ imageUrl })
   } catch (error: any) {
     console.error('Error in generate-scene-image API:', error)

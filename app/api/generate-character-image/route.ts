@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server'
+import { getModelByName } from '../../../lib/supabase-service'
 
 async function generateCharacterImage(character: {
   name: string
   description: string
   attributes: string[]
-}): Promise<string> {
+}, modelName: string = 'nano-banana'): Promise<string> {
 
   const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY
   
   if (!FAL_AI_API_KEY) {
     throw new Error('FAL_AI_API_KEY is not set')
   }
+
+  // Get the model link from the database
+  const model = await getModelByName(modelName)
+  const modelLink = model?.link || 'https://fal.run/fal-ai/nano-banana/'
 
   try {
     const prompt = `A portrait of ${character.name}, ${character.description.toLowerCase()}, ${
@@ -19,12 +24,12 @@ async function generateCharacterImage(character: {
         : 'detailed character design'
     }, high quality, detailed, ultra realistic style`
 
-    const response = await fetch('https://fal.run/fal-ai/nano-banana/', {
+    const response = await fetch(modelLink, {
       method: 'POST',
       headers: {
           'Authorization': `Key ${FAL_AI_API_KEY}`,
           'Content-Type': 'application/json',
-      },
+        },
       body: JSON.stringify({
           prompt: prompt,
           image_size: 'square',
@@ -57,13 +62,14 @@ async function generateCharacterImage(character: {
 
 export async function POST(request: Request) {
   try {
-    const character = await request.json()
+    const body = await request.json()
+    const { character, modelName } = body
     
     if (!character) {
       return NextResponse.json({ error: 'Character data is required' }, { status: 400 })
     }
 
-    const imageUrl = await generateCharacterImage(character)
+    const imageUrl = await generateCharacterImage(character, modelName)
     return NextResponse.json({ imageUrl })
   } catch (error: any) {
     console.error('Error in generate-character-image API:', error)

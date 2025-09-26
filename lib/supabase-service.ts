@@ -36,6 +36,15 @@ interface SceneRecord {
   image_url: string | null
 }
 
+interface ModelRecord {
+  id: number
+  name: string
+  type: 'character' | 'scene'
+  link: string
+  is_default: boolean
+  created_at: string
+}
+
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || ''
 const supabaseKey = process.env.SUPABASE_API_KEY || ''
@@ -382,5 +391,146 @@ export async function deleteAllStories(): Promise<boolean> {
   } catch (error) {
     console.error('Error deleting all stories:', error)
     return false
+  }
+}
+
+// Get all models by type
+export async function getModelsByType(type: 'character' | 'scene'): Promise<ModelRecord[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('models')
+      .select('*')
+      .eq('type', type)
+      .order('is_default', { ascending: false })
+      .order('name', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching models:', error)
+      return null
+    }
+    
+    return data as ModelRecord[]
+  } catch (error) {
+    console.error('Error getting models by type:', error)
+    return null
+  }
+}
+
+// Get model by name
+export async function getModelByName(name: string): Promise<ModelRecord | null> {
+  try {
+    const { data, error } = await supabase
+      .from('models')
+      .select('*')
+      .eq('name', name)
+      .single()
+    
+    if (error) {
+      console.error('Error fetching model:', error)
+      return null
+    }
+    
+    return data as ModelRecord
+  } catch (error) {
+    console.error('Error getting model by name:', error)
+    return null
+  }
+}
+
+// Add a new model
+export async function addModel(name: string, type: 'character' | 'scene', link: string, isDefault: boolean = false): Promise<ModelRecord | null> {
+  try {
+    // If setting as default, unset the current default for this type
+    if (isDefault) {
+      const { error: updateError } = await supabase
+        .from('models')
+        .update({ is_default: false })
+        .eq('type', type)
+      
+      if (updateError) {
+        console.error('Error unsetting default models:', updateError)
+        return null
+      }
+    }
+    
+    // Insert the new model
+    const { data, error } = await supabase
+      .from('models')
+      .insert([
+        {
+          name,
+          type,
+          link,
+          is_default: isDefault
+        }
+      ])
+      .select()
+    
+    if (error) {
+      console.error('Error adding model:', error)
+      return null
+    }
+    
+    return data[0] as ModelRecord
+  } catch (error) {
+    console.error('Error adding model:', error)
+    return null
+  }
+}
+
+// Delete a model by ID
+export async function deleteModelById(id: number): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('models')
+      .delete()
+      .eq('id', id)
+    
+    if (error) {
+      console.error('Error deleting model:', error)
+      return false
+    }
+    
+    return true
+  } catch (error) {
+    console.error('Error deleting model:', error)
+    return false
+  }
+}
+
+// Get all models
+export async function getAllModels(): Promise<{ characterModels: ModelRecord[], sceneModels: ModelRecord[] } | null> {
+  try {
+    const { data: characterModels, error: charError } = await supabase
+      .from('models')
+      .select('*')
+      .eq('type', 'character')
+      .order('is_default', { ascending: false })
+      .order('name', { ascending: true })
+    
+    if (charError) {
+      console.error('Error fetching character models:', charError)
+      return null
+    }
+    
+    const { data: sceneModels, error: sceneError } = await supabase
+      .from('models')
+      .select('*')
+      .eq('type', 'scene')
+      .order('is_default', { ascending: false })
+      .order('name', { ascending: true })
+    
+    if (sceneError) {
+      console.error('Error fetching scene models:', sceneError)
+      return null
+    }
+    
+    return {
+      characterModels: characterModels as ModelRecord[],
+      sceneModels: sceneModels as ModelRecord[]
+    }
+  } catch (error) {
+    console.error('Error getting all models:', error)
+    return null
   }
 }
