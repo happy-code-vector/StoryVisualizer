@@ -91,6 +91,7 @@ export default function VisualizePage() {
   const generateImages = async (characters: Character[], scenes: Scene[]) => {
     setProcessing({ step: "Generating character images...", progress: 10, isProcessing: true })
     
+    let id = 0
     const charactersWithImages = await Promise.all(
       characters.map(async (character, index) => {
         try {
@@ -109,12 +110,13 @@ export default function VisualizePage() {
 
           const { imageUrl } = await response.json()
           
-          const progress = 10 + Math.floor((index + 1) / characters.length * 40)
+          const progress = 10 + Math.floor((id + 1) / characters.length * 40)
           setProcessing({ 
-            step: `Generating character images (${index + 1}/${characters.length})...`, 
+            step: `Generating character images (${id + 1}/${characters.length})...`, 
             progress, 
             isProcessing: true 
           })
+          id++
           
           return {
             ...character,
@@ -133,6 +135,7 @@ export default function VisualizePage() {
     setCharacters(charactersWithImages)
     setProcessing({ step: "Generating scene images...", progress: 50, isProcessing: true })
     
+    id = 0
     const scenesWithImages = await Promise.all(
       scenes.map(async (scene, index) => {
         try {          
@@ -161,12 +164,13 @@ export default function VisualizePage() {
 
           const { imageUrl } = await response.json()
           
-          const progress = 50 + Math.floor((index + 1) / scenes.length * 40)
+          const progress = 50 + Math.floor((id + 1) / scenes.length * 40)
           setProcessing({ 
-            step: `Generating scene images (${index + 1}/${scenes.length})...`, 
+            step: `Generating scene images (${id + 1}/${scenes.length})...`, 
             progress, 
             isProcessing: true 
           })
+          id++
           
           return {
             ...scene,

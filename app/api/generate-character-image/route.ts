@@ -19,7 +19,7 @@ async function generateCharacterImage(character: {
         : 'detailed character design'
     }, high quality, detailed, ultra realistic style`
 
-    const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+    const response = await fetch('https://fal.run/fal-ai/nano-banana/', {
       method: 'POST',
       headers: {
           'Authorization': `Key ${FAL_AI_API_KEY}`,

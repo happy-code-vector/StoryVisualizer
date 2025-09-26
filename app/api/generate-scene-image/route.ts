@@ -22,7 +22,7 @@ async function generateSceneImage(scene: {
     if (scene.characterImages && scene.characterImages.length > 0) {
       console.log(`[SceneImage] Generating scene image with ${scene.characterImages.length} character references`)
       
-      const response = await fetch('https://fal.run/fal-ai/flux-pro/kontext/max/multi', {
+      const response = await fetch('https://fal.run/fal-ai/nano-banana/edit', {
         method: 'POST',
         headers: {
             'Authorization': `Key ${FAL_AI_API_KEY}`,
