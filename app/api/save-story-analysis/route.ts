@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { saveStoryAnalysis } from '@/lib/db-service'
+import { saveStoryAnalysis } from '@/lib/supabase-service'
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,11 @@ export async function POST(request: Request) {
     }
 
     // Save the complete analysis with images to the database
-    const storyId = saveStoryAnalysis(title, story, analysis)
+    const storyId = await saveStoryAnalysis(title, story, analysis)
+
+    if (storyId === null) {
+      return NextResponse.json({ error: 'Failed to save story analysis' }, { status: 500 })
+    }
 
     return NextResponse.json({ id: storyId, success: true })
   } catch (error) {

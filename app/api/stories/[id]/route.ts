@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { deleteStoryById } from '@/lib/db-service'
+import { deleteStoryById } from '@/lib/supabase-service'
 
 export async function DELETE(
   request: Request,
@@ -12,7 +12,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid story ID' }, { status: 400 })
     }
     
-    const deleted = deleteStoryById(id)
+    const deleted = await deleteStoryById(id)
     
     if (!deleted) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 })
