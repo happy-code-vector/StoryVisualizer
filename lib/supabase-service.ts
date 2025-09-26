@@ -440,6 +440,17 @@ export async function getModelByName(name: string): Promise<ModelRecord | null> 
 // Add a new model
 export async function addModel(name: string, type: 'character' | 'scene', link: string, isDefault: boolean = false): Promise<ModelRecord | null> {
   try {
+    // Ensure the link starts with https://fal.run/ or add it as prefix
+    let formattedLink = link;
+    if (!link.startsWith('https://fal.run/')) {
+      // If the link doesn't start with https://fal.run/, add it as prefix
+      if (link.startsWith('/')) {
+        formattedLink = `https://fal.run${link}`;
+      } else {
+        formattedLink = `https://fal.run/${link}`;
+      }
+    }
+    
     // If setting as default, unset the current default for this type
     if (isDefault) {
       const { error: updateError } = await supabase
@@ -460,7 +471,7 @@ export async function addModel(name: string, type: 'character' | 'scene', link: 
         {
           name,
           type,
-          link,
+          link: formattedLink,
           is_default: isDefault
         }
       ])

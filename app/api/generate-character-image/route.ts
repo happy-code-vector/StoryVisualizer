@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getModelByName } from '../../../lib/supabase-service'
+import { getModelByName } from '@/lib/supabase-service'
 
 async function generateCharacterImage(character: {
   name: string

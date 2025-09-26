@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getModelByName } from '../../../lib/supabase-service'
+import { getModelByName } from '@/lib/supabase-service'
 
 async function generateSceneImage(scene: {
   setting: string
@@ -27,7 +27,8 @@ async function generateSceneImage(scene: {
     if (scene.characterImages && scene.characterImages.length > 0) {
       console.log(`[SceneImage] Generating scene image with ${scene.characterImages.length} character references`)
       
-      const response = await fetch('https://fal.run/fal-ai/nano-banana/edit', {
+      // Use the model link for image-to-image generation as well
+      const response = await fetch(`${modelLink}`, {
         method: 'POST',
         headers: {
             'Authorization': `Key ${FAL_AI_API_KEY}`,
