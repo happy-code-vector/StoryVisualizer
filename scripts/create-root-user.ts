@@ -12,25 +12,15 @@ const supabase = createClient(
 )
 
 async function createRootUser() {
+  const username = process.argv[2]
+  const password = process.argv[3]
+  
+  if (!username || !password) {
+    console.error('Usage: npm run create-root-user <username> <password>')
+    process.exit(1)
+  }
+  
   try {
-    const username = 'admin'
-    const password = 'admin123'
-    const role = 'root'
-    
-    // Check if user already exists
-    const { data: existingUser, error: fetchError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .single()
-    
-    if (existingUser) {
-      console.log('Root user already exists:')
-      console.log('Username:', existingUser.username)
-      console.log('Role:', existingUser.role)
-      return
-    }
-    
     // Hash the password
     const saltRounds = 10
     const passwordHash = await bcrypt.hash(password, saltRounds)
@@ -42,23 +32,20 @@ async function createRootUser() {
         {
           username,
           password_hash: passwordHash,
-          role
+          role: 'root',
+          verified: true // Root users are automatically verified
         }
       ])
       .select()
-      .single()
     
     if (error) {
-      console.error('Error creating root user:', error)
-      return
+      throw new Error(error.message)
     }
     
-    console.log('Root user created successfully:')
-    console.log('Username:', data.username)
-    console.log('Password:', password)
-    console.log('Role:', data.role)
-  } catch (error) {
-    console.error('Error creating root user:', error)
+    console.log(`Root user ${username} created successfully with ID: ${data[0].id}`)
+  } catch (error: any) {
+    console.error('Error creating root user:', error.message)
+    process.exit(1)
   }
 }
 

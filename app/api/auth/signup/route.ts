@@ -25,9 +25,11 @@ export async function POST(request: Request) {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        verified: user.verified
       },
-      token
+      token,
+      message: 'Account created successfully. Please wait for verification by an administrator.'
     })
   } catch (error: any) {
     console.error('Error signing up:', error)

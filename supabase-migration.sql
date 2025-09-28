@@ -52,8 +52,12 @@ create table if not exists users (
   username text unique not null,
   password_hash text not null,
   role text not null default 'unpaid', -- 'root', 'admin', 'paid', 'unpaid'
+  verified boolean not null default false, -- Whether the user's account is verified
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Add verified column to existing users table if it doesn't exist
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verified boolean NOT NULL DEFAULT false;
 
 -- Insert default models
 insert into models (name, type, link, is_default) values 
@@ -68,3 +72,4 @@ create index if not exists idx_scenes_scene_id on scenes(scene_id);
 create index if not exists idx_models_type on models(type);
 create index if not exists idx_users_username on users(username);
 create index if not exists idx_users_role on users(role);
+create index if not exists idx_users_verified on users(verified);

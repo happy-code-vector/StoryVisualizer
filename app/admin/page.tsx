@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Save, Trash2 } from "lucide-react"
+import { Plus, Save, Trash2, Check, X } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 
@@ -19,8 +19,17 @@ interface Model {
   isDefault: boolean
 }
 
+interface User {
+  id: number
+  username: string
+  role: string
+  verified: boolean
+  created_at: string
+}
+
 export default function ModelManagementPage() {
   const [models, setModels] = useState<Model[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [newModel, setNewModel] = useState({
     name: '',
     type: 'character' as 'character' | 'scene',
@@ -28,6 +37,7 @@ export default function ModelManagementPage() {
     isDefault: false
   })
   const [loading, setLoading] = useState(true)
+  const [usersLoading, setUsersLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
@@ -74,6 +84,35 @@ export default function ModelManagementPage() {
     }
 
     fetchModels()
+  }, [isAuthenticated, user])
+
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!isAuthenticated || (user && user.role !== 'root' && user.role !== 'admin')) {
+        return
+      }
+      
+      try {
+        const token = localStorage.getItem('authToken')
+        const response = await fetch('/api/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        if (data.users) {
+          setUsers(data.users)
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+      } finally {
+        setUsersLoading(false)
+      }
+    }
+
+    fetchUsers()
   }, [isAuthenticated, user])
 
   const handleAddModel = async () => {
@@ -138,6 +177,37 @@ export default function ModelManagementPage() {
     }
   }
 
+  const handleVerifyUser = async (userId: number, username: string) => {
+    if (!confirm(`Are you sure you want to verify user "${username}"?`)) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('authToken')
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ token, userId }),
+      })
+
+      if (response.ok) {
+        // Update the user's verified status in the state
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, verified: true } : user
+        ))
+      } else {
+        const error = await response.json()
+        alert(`Error verifying user: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error verifying user:', error)
+      alert('Error verifying user')
+    }
+  }
+
   // Show access denied if user doesn't have admin access
   if (accessDenied) {
     return (
@@ -169,7 +239,7 @@ export default function ModelManagementPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Model Management</h1>
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -280,6 +350,79 @@ export default function ModelManagementPage() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Users List */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>Manage user accounts and verification status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {usersLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Verified</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.username}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          user.role === 'root' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : user.role === 'admin'
+                            ? 'bg-blue-100 text-blue-800'
+                            : user.role === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {user.verified ? (
+                          <span className="text-green-600 flex items-center">
+                            <Check className="w-4 h-4 mr-1" /> Verified
+                          </span>
+                        ) : (
+                          <span className="text-red-600 flex items-center">
+                            <X className="w-4 h-4 mr-1" /> Pending
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {!user.verified && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleVerifyUser(user.id, user.username)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Verify
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -14,6 +14,7 @@ export interface User {
   id: number;
   username: string;
   role: UserRole;
+  verified: boolean;
   created_at: string;
 }
 
@@ -70,6 +71,7 @@ export async function getUserByUsername(username: string): Promise<User | null> 
       id: data.id,
       username: data.username,
       role: data.role,
+      verified: data.verified,
       created_at: data.created_at
     };
   } catch (error) {
@@ -95,6 +97,7 @@ export async function getUserById(id: number): Promise<User | null> {
       id: data.id,
       username: data.username,
       role: data.role,
+      verified: data.verified,
       created_at: data.created_at
     };
   } catch (error) {
@@ -122,7 +125,8 @@ export async function createUser(username: string, password: string, role: UserR
         {
           username,
           password_hash: passwordHash,
-          role
+          role,
+          verified: false // New users are not verified by default
         }
       ])
       .select()
@@ -136,6 +140,7 @@ export async function createUser(username: string, password: string, role: UserR
       id: data.id,
       username: data.username,
       role: data.role,
+      verified: data.verified,
       created_at: data.created_at
     };
   } catch (error) {
@@ -151,6 +156,11 @@ export async function authenticateUser(username: string, password: string): Prom
     const user = await getUserByUsername(username);
     if (!user) {
       return null;
+    }
+    
+    // Check if user is verified
+    if (!user.verified) {
+      throw new Error('Account not verified. Please verify your account to log in.');
     }
     
     // Get the password hash from the database
@@ -236,6 +246,34 @@ export async function updateUserRole(token: string, userId: number, newRole: Use
     return true;
   } catch (error) {
     console.error('Error updating user role:', error);
+    return false;
+  }
+}
+
+// Verify a user's account (only root users can do this)
+export async function verifyUser(token: string, userId: number): Promise<boolean> {
+  try {
+    const currentUserRole = await getCurrentUserRole(token);
+    
+    // Only root users can verify accounts
+    if (currentUserRole !== 'root') {
+      console.error('Only root users can verify accounts');
+      return false;
+    }
+    
+    const { error } = await supabase
+      .from('users')
+      .update({ verified: true })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error verifying user:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error verifying user:', error);
     return false;
   }
 }
