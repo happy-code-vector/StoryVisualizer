@@ -4,6 +4,7 @@ interface User {
   id: number
   username: string
   role: string
+  verified: boolean
 }
 
 export function useAuth() {

@@ -23,7 +23,8 @@ export async function GET(request: Request) {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        verified: user.verified
       }
     })
   } catch (error) {
@@ -32,33 +33,5 @@ export async function GET(request: Request) {
   }
 }
 
-// Sign out
-export async function DELETE() {
-  try {
-    const cookieStore = cookies()
-    
-    // Create a Supabase client that uses cookies for session management
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-    
-    const { error } = await supabase.auth.signOut()
-    
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-    
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error signing out:', error)
-    return NextResponse.json({ error: 'Failed to sign out' }, { status: 500 })
-  }
-}
+// We don't need the DELETE function for this route since we're using a custom auth system
+// The logout functionality is handled by the logout API route

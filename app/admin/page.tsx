@@ -49,6 +49,14 @@ export default function ModelManagementPage() {
       return
     }
     
+    // Check if user is verified
+    if (user && !user.verified) {
+      // Redirect unverified users to home page with a message
+      router.push('/?error=unverified')
+      return
+    }
+    
+    // Check if user has admin access
     if (user && user.role !== 'root' && user.role !== 'admin') {
       setAccessDenied(true)
     }
@@ -57,7 +65,8 @@ export default function ModelManagementPage() {
   // Fetch models from API
   useEffect(() => {
     const fetchModels = async () => {
-      if (!isAuthenticated || (user && user.role !== 'root' && user.role !== 'admin')) {
+      // Check if user is authenticated, verified, and has admin access
+      if (!isAuthenticated || !user || !user.verified || (user.role !== 'root' && user.role !== 'admin')) {
         return
       }
       
@@ -89,7 +98,8 @@ export default function ModelManagementPage() {
   // Fetch users from API
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!isAuthenticated || (user && user.role !== 'root' && user.role !== 'admin')) {
+      // Check if user is authenticated, verified, and has admin access
+      if (!isAuthenticated || !user || !user.verified || (user.role !== 'root' && user.role !== 'admin')) {
         return
       }
       
@@ -226,12 +236,46 @@ export default function ModelManagementPage() {
   }
 
   // Show loading state while checking permissions
-  if (!isAuthenticated || (user && user.role !== 'root' && user.role !== 'admin')) {
+  if (loading || !isAuthenticated || !user) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
+      </div>
+    )
+  }
+
+  // Check if user is verified
+  if (!user.verified) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Account Not Verified</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Your account has not been verified yet. Please contact an administrator.</p>
+            <Button className="mt-4" onClick={() => router.push('/')}>Go Home</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Check if user has admin access
+  if (user.role !== 'root' && user.role !== 'admin') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>You don't have permission to access this page.</p>
+            <Button className="mt-4" onClick={() => router.push('/')}>Go Home</Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }

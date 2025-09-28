@@ -23,7 +23,8 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get('authToken')?.value
   
   // Check if user is authenticated
-  const isAuthenticated = !!token && !!verifyToken(token)
+  const decoded = token ? verifyToken(token) : null
+  const isAuthenticated = !!decoded
   
   // Redirect unauthenticated users to login page
   if (!isAuthenticated && protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -39,13 +40,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
   
-  // Check role-based access for admin routes
-  if (pathname.startsWith('/admin') && token) {
-    const decoded = verifyToken(token)
-    
-    if (!decoded) {
+  // Check role-based access and verification for admin routes
+  if (pathname.startsWith('/admin') && token && decoded) {
+    // Check if user is verified
+    if (!decoded.verified) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
+      url.searchParams.set('error', 'unverified')
       return NextResponse.redirect(url)
     }
     

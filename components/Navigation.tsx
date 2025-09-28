@@ -11,7 +11,6 @@ import {
   Settings 
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
-import { useEffect, useState } from "react"
 
 const navigationItems = [
   { name: "Story", href: "/story", icon: BookOpen },
@@ -20,18 +19,14 @@ const navigationItems = [
 
 export function Navigation() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  useEffect(() => {
-    if (user) {
-      setIsAdmin(user.role === 'root' || user.role === 'admin')
-    }
-  }, [user])
+  const { user, isAuthenticated, logout } = useAuth()
 
   const handleLogout = () => {
     logout()
   }
+
+  // Determine if user is admin
+  const isAdmin = user && (user.role === 'root' || user.role === 'admin')
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur">
@@ -74,7 +69,7 @@ export function Navigation() {
           </div>
         </div>
         
-        {user && (
+        {isAuthenticated && user && (
           <div className="flex items-center gap-2">
             <span className="text-sm hidden sm:inline">Welcome, {user.username}</span>
             <Button variant="outline" size="sm" onClick={handleLogout}>

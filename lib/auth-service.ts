@@ -33,12 +33,13 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 // Generate a JWT token
-export function generateToken(user: { id: number; username: string; role: UserRole }): string {
+export function generateToken(user: { id: number; username: string; role: UserRole; verified: boolean }): string {
   return jwt.sign(
     { 
       id: user.id, 
       username: user.username, 
-      role: user.role 
+      role: user.role,
+      verified: user.verified
     },
     JWT_SECRET,
     { expiresIn: '24h' }
@@ -46,9 +47,9 @@ export function generateToken(user: { id: number; username: string; role: UserRo
 }
 
 // Verify a JWT token
-export function verifyToken(token: string): { id: number; username: string; role: UserRole } | null {
+export function verifyToken(token: string): { id: number; username: string; role: UserRole; verified: boolean } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { id: number; username: string; role: UserRole };
+    return jwt.verify(token, JWT_SECRET) as { id: number; username: string; role: UserRole; verified: boolean };
   } catch (error) {
     return null;
   }
