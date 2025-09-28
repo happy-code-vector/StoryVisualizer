@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Save, Trash2 } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
 
 interface Model {
   id: number
@@ -26,12 +28,36 @@ export default function ModelManagementPage() {
     isDefault: false
   })
   const [loading, setLoading] = useState(true)
+  const [accessDenied, setAccessDenied] = useState(false)
+  const { user, isAuthenticated } = useAuth()
+  const router = useRouter()
+
+  // Check if user has admin access
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    
+    if (user && user.role !== 'root' && user.role !== 'admin') {
+      setAccessDenied(true)
+    }
+  }, [isAuthenticated, user, router])
 
   // Fetch models from API
   useEffect(() => {
     const fetchModels = async () => {
+      if (!isAuthenticated || (user && user.role !== 'root' && user.role !== 'admin')) {
+        return
+      }
+      
       try {
-        const response = await fetch('/api/models')
+        const token = localStorage.getItem('authToken')
+        const response = await fetch('/api/models', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
         const data = await response.json()
         
         if (data.characterModels && data.sceneModels) {
@@ -48,7 +74,7 @@ export default function ModelManagementPage() {
     }
 
     fetchModels()
-  }, [])
+  }, [isAuthenticated, user])
 
   const handleAddModel = async () => {
     if (!newModel.name || !newModel.link) {
@@ -57,10 +83,12 @@ export default function ModelManagementPage() {
     }
 
     try {
+      const token = localStorage.getItem('authToken')
       const response = await fetch('/api/models', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(newModel),
       })
@@ -90,8 +118,12 @@ export default function ModelManagementPage() {
     }
 
     try {
+      const token = localStorage.getItem('authToken')
       const response = await fetch(`/api/models?id=${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
 
       if (response.ok) {
@@ -104,6 +136,34 @@ export default function ModelManagementPage() {
       console.error('Error deleting model:', error)
       alert('Error deleting model')
     }
+  }
+
+  // Show access denied if user doesn't have admin access
+  if (accessDenied) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>You don't have permission to access this page.</p>
+            <Button className="mt-4" onClick={() => router.push('/')}>Go Home</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show loading state while checking permissions
+  if (!isAuthenticated || (user && user.role !== 'root' && user.role !== 'admin')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    )
   }
 
   return (

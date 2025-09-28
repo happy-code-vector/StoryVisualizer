@@ -1,5 +1,35 @@
 import { NextResponse } from 'next/server'
 import { getModelsByType, getModelByName, addModel, deleteModelById, getAllModels } from '@/lib/supabase-service'
+import { verifyToken } from '@/lib/auth-service'
+
+// Add authentication check function
+async function checkAdminAccess(request: Request): Promise<{ authorized: boolean; role?: string }> {
+  try {
+    // Get the token from the Authorization header
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.split(' ')[1] // Bearer TOKEN
+    
+    if (!token) {
+      return { authorized: false }
+    }
+    
+    // Verify the token
+    const decoded = verifyToken(token)
+    if (!decoded) {
+      return { authorized: false }
+    }
+    
+    // Check if user has admin access
+    if (decoded.role !== 'root' && decoded.role !== 'admin') {
+      return { authorized: false, role: decoded.role }
+    }
+    
+    return { authorized: true, role: decoded.role }
+  } catch (error) {
+    console.error('Error checking admin access:', error)
+    return { authorized: false }
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -28,6 +58,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Check if user has admin access
+    const { authorized, role } = await checkAdminAccess(request)
+    if (!authorized) {
+      if (role) {
+        return NextResponse.json({ error: 'Access denied. Insufficient permissions.' }, { status: 403 })
+      } else {
+        return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+      }
+    }
+    
     const body = await request.json()
     let { name, type, link, isDefault } = body
     
@@ -79,6 +119,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    // Check if user has admin access
+    const { authorized, role } = await checkAdminAccess(request)
+    if (!authorized) {
+      if (role) {
+        return NextResponse.json({ error: 'Access denied. Insufficient permissions.' }, { status: 403 })
+      } else {
+        return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+      }
+    }
+    
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
