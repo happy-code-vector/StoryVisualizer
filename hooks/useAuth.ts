@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getCookie, setCookie, removeCookie } from '@/lib/cookie-utils'
 
 interface User {
   id: number
@@ -15,7 +16,8 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('authToken')
+        const token = getCookie('authToken')
+        
         if (!token) {
           setIsAuthenticated(false)
           setUser(null)
@@ -37,10 +39,9 @@ export function useAuth() {
           setIsAuthenticated(false)
           setUser(null)
           // Remove invalid token
-          localStorage.removeItem('authToken')
+          removeCookie('authToken')
         }
       } catch (error) {
-        console.error('Error checking auth:', error)
         setIsAuthenticated(false)
         setUser(null)
       } finally {
@@ -64,7 +65,8 @@ export function useAuth() {
       const data = await response.json()
 
       if (response.ok) {
-        localStorage.setItem('authToken', data.token)
+        // Store token in cookies
+        setCookie('authToken', data.token, 1) // 1 day
         setIsAuthenticated(true)
         setUser(data.user)
         return { success: true }
@@ -72,7 +74,6 @@ export function useAuth() {
         return { success: false, error: data.error }
       }
     } catch (error) {
-      console.error('Login error:', error)
       return { success: false, error: 'An unexpected error occurred' }
     }
   }
@@ -83,9 +84,10 @@ export function useAuth() {
         method: 'POST',
       })
     } catch (error) {
-      console.error('Logout error:', error)
+      // Silently handle logout errors
     } finally {
-      localStorage.removeItem('authToken')
+      // Remove token from cookies
+      removeCookie('authToken')
       setIsAuthenticated(false)
       setUser(null)
     }

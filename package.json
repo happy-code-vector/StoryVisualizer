@@ -8,7 +8,8 @@
     "lint": "next lint",
     "start": "next start",
     "create-root-user": "npx tsx scripts/create-root-user.ts",
-    "verify-user": "npx tsx scripts/verify-user.ts"
+    "verify-user": "npx tsx scripts/verify-user.ts",
+    "check-users": "npx tsx scripts/check-users.ts"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

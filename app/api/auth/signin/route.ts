@@ -23,7 +23,8 @@ export async function POST(request: Request) {
       }
     }
     
-    return NextResponse.json({ 
+    // Create response
+    const response = NextResponse.json({ 
       success: true, 
       user: {
         id: result.user.id,
@@ -33,6 +34,19 @@ export async function POST(request: Request) {
       },
       token: result.token
     })
+    
+    // Set cookie with the token
+    response.cookies.set({
+      name: 'authToken',
+      value: result.token,
+      httpOnly: true, // Secure cookies, not accessible via JavaScript
+      path: '/',
+      maxAge: 60 * 60 * 24, // 24 hours
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    })
+    
+    return response
   } catch (error: any) {
     console.error('Error signing in:', error)
     // Check if the error is about verification

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Save, Trash2, Check, X } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
+import { getCookie } from '@/lib/cookie-utils'
 
 interface Model {
   id: number
@@ -41,11 +42,12 @@ export default function ModelManagementPage() {
   const [accessDenied, setAccessDenied] = useState(false)
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
+  const [isTokenVerified, setIsTokenVerified] = useState(false)
 
   // Check if user has admin access
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/login')
+      router.push('/login?returnTo=/admin')
       return
     }
     
@@ -62,6 +64,54 @@ export default function ModelManagementPage() {
     }
   }, [isAuthenticated, user, router])
 
+  // Verify token in the client-side component
+  useEffect(() => {
+    const verifyToken = async () => {
+      try {
+        const token = getCookie('authToken')
+        if (!token) {
+          router.push('/login?returnTo=/admin')
+          return
+        }
+
+        // Verify token with the API
+        const res = await fetch('/api/auth', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!res.ok) {
+          router.push('/login?returnTo=/admin')
+          return
+        }
+
+        const data = await res.json()
+        if (!data.authenticated) {
+          router.push('/login?returnTo=/admin')
+          return
+        }
+
+        // Additional check for admin access
+        if (data.user.role !== 'root' && data.user.role !== 'admin') {
+          setAccessDenied(true)
+          return
+        }
+
+        if (!data.user.verified) {
+          router.push('/?error=unverified')
+          return
+        }
+
+        setIsTokenVerified(true)
+      } catch (error) {
+        router.push('/login?returnTo=/admin')
+      }
+    }
+
+    verifyToken()
+  }, [router])
+
   // Fetch models from API
   useEffect(() => {
     const fetchModels = async () => {
@@ -71,7 +121,7 @@ export default function ModelManagementPage() {
       }
       
       try {
-        const token = localStorage.getItem('authToken')
+        const token = getCookie('authToken')
         const response = await fetch('/api/models', {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -86,7 +136,7 @@ export default function ModelManagementPage() {
           setModels(data.models)
         }
       } catch (error) {
-        console.error('Error fetching models:', error)
+        // Silently handle errors to avoid exposing sensitive information
       } finally {
         setLoading(false)
       }
@@ -104,7 +154,7 @@ export default function ModelManagementPage() {
       }
       
       try {
-        const token = localStorage.getItem('authToken')
+        const token = getCookie('authToken')
         const response = await fetch('/api/users', {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -116,7 +166,7 @@ export default function ModelManagementPage() {
           setUsers(data.users)
         }
       } catch (error) {
-        console.error('Error fetching users:', error)
+        // Silently handle errors to avoid exposing sensitive information
       } finally {
         setUsersLoading(false)
       }
@@ -132,7 +182,7 @@ export default function ModelManagementPage() {
     }
 
     try {
-      const token = localStorage.getItem('authToken')
+      const token = getCookie('authToken')
       const response = await fetch('/api/models', {
         method: 'POST',
         headers: {
@@ -156,7 +206,6 @@ export default function ModelManagementPage() {
         alert(`Error adding model: ${error.error}`)
       }
     } catch (error) {
-      console.error('Error adding model:', error)
       alert('Error adding model')
     }
   }
@@ -167,7 +216,7 @@ export default function ModelManagementPage() {
     }
 
     try {
-      const token = localStorage.getItem('authToken')
+      const token = getCookie('authToken')
       const response = await fetch(`/api/models?id=${id}`, {
         method: 'DELETE',
         headers: {
@@ -182,7 +231,6 @@ export default function ModelManagementPage() {
         alert(`Error deleting model: ${error.error}`)
       }
     } catch (error) {
-      console.error('Error deleting model:', error)
       alert('Error deleting model')
     }
   }
@@ -193,7 +241,7 @@ export default function ModelManagementPage() {
     }
 
     try {
-      const token = localStorage.getItem('authToken')
+      const token = getCookie('authToken')
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: {
@@ -213,7 +261,6 @@ export default function ModelManagementPage() {
         alert(`Error verifying user: ${error.error}`)
       }
     } catch (error) {
-      console.error('Error verifying user:', error)
       alert('Error verifying user')
     }
   }
@@ -236,7 +283,7 @@ export default function ModelManagementPage() {
   }
 
   // Show loading state while checking permissions
-  if (loading || !isAuthenticated || !user) {
+  if (loading || !isAuthenticated || !user || !isTokenVerified) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">

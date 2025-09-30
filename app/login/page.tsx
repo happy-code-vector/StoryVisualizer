@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+// Remove the import of setCookie since we're not using it anymore
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -15,13 +16,18 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
 
   // Redirect if already logged in
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('authToken')
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('authToken='))
+          ?.split('=')[1];
+        
         if (token) {
           const res = await fetch('/api/auth', {
             headers: {
@@ -29,15 +35,21 @@ export default function LoginPage() {
             }
           })
           if (res.ok) {
-            router.push('/story')
+            // Check if there's a returnTo parameter
+            const returnTo = searchParams.get('returnTo')
+            if (returnTo) {
+              router.push(returnTo)
+            } else {
+              router.push('/story')
+            }
           }
         }
       } catch (error) {
-        console.error('Error checking auth:', error)
+        // Silently handle auth check errors
       }
     }
     checkAuth()
-  }, [router])
+  }, [router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,11 +78,16 @@ export default function LoginPage() {
           setUsername('')
           setPassword('')
         } else {
-          // Store token in localStorage
-          localStorage.setItem('authToken', data.token)
+          // The cookie is now set by the API response, so we don't need to set it here
           // Small delay to ensure session is established
           setTimeout(() => {
-            router.push('/story')
+            // Check if there's a returnTo parameter
+            const returnTo = searchParams.get('returnTo')
+            if (returnTo) {
+              router.push(returnTo)
+            } else {
+              router.push('/story')
+            }
             router.refresh()
           }, 100)
         }
@@ -79,7 +96,6 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError('An unexpected error occurred')
-      console.error(err)
     } finally {
       setLoading(false)
     }
