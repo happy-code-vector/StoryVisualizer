@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getAllStories, getStoryById } from '@/lib/supabase-service'
 
+// Add export for dynamic config to prevent static optimization issues
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
