@@ -35,11 +35,11 @@ export async function POST(request: Request) {
       token: result.token
     })
     
-    // Set cookie with the token
+    // Set cookie with the token (not httpOnly so client can read it)
     response.cookies.set({
       name: 'authToken',
       value: result.token,
-      httpOnly: true, // Secure cookies, not accessible via JavaScript
+      httpOnly: false, // Allow client-side access for auth checks
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
       sameSite: 'lax',

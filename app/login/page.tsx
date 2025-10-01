@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-// Remove the import of setCookie since we're not using it anymore
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
+  const { login: authLogin } = useAuth()
 
   // Redirect if already logged in
   useEffect(() => {
@@ -57,19 +58,18 @@ export default function LoginPage() {
     setError('')
     
     try {
-      const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/signin'
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      })
-      
-      const data = await response.json()
-      
-      if (response.ok) {
-        if (isSignUp) {
+      if (isSignUp) {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok) {
           toast({
             title: "Account created",
             description: "Your account has been created successfully. You can now sign in.",
@@ -78,21 +78,23 @@ export default function LoginPage() {
           setUsername('')
           setPassword('')
         } else {
-          // The cookie is now set by the API response, so we don't need to set it here
-          // Small delay to ensure session is established
-          setTimeout(() => {
-            // Check if there's a returnTo parameter
-            const returnTo = searchParams.get('returnTo')
-            if (returnTo) {
-              router.push(returnTo)
-            } else {
-              router.push('/story')
-            }
-            router.refresh()
-          }, 100)
+          setError(data.error || 'An error occurred')
         }
       } else {
-        setError(data.error || 'An error occurred')
+        // Use the auth context login function
+        const result = await authLogin(username, password)
+        
+        if (result.success) {
+          // Login successful, redirect
+          const returnTo = searchParams.get('returnTo')
+          if (returnTo) {
+            router.push(returnTo)
+          } else {
+            router.push('/story')
+          }
+        } else {
+          setError(result.error || 'Login failed')
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred')

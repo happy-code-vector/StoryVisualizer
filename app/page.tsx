@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 
 export default function Page() {
-  redirect('/story')
+  // Redirect to public home page
+  redirect('/home')
 }

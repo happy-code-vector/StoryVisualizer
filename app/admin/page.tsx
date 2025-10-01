@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Save, Trash2, Check, X } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { getCookie } from '@/lib/cookie-utils'
 
@@ -51,66 +51,30 @@ export default function ModelManagementPage() {
       return
     }
     
+    // Wait for user data to load
+    if (!user) {
+      return
+    }
+    
     // Check if user is verified
-    if (user && !user.verified) {
+    if (!user.verified) {
       // Redirect unverified users to home page with a message
       router.push('/?error=unverified')
       return
     }
     
     // Check if user has admin access
-    if (user && user.role !== 'root' && user.role !== 'admin') {
+    if (user.role !== 'root' && user.role !== 'admin') {
       setAccessDenied(true)
     }
   }, [isAuthenticated, user, router])
 
-  // Verify token in the client-side component
+  // Set token as verified once user is loaded and authenticated
   useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        const token = getCookie('authToken')
-        if (!token) {
-          router.push('/login?returnTo=/admin')
-          return
-        }
-
-        // Verify token with the API
-        const res = await fetch('/api/auth', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        if (!res.ok) {
-          router.push('/login?returnTo=/admin')
-          return
-        }
-
-        const data = await res.json()
-        if (!data.authenticated) {
-          router.push('/login?returnTo=/admin')
-          return
-        }
-
-        // Additional check for admin access
-        if (data.user.role !== 'root' && data.user.role !== 'admin') {
-          setAccessDenied(true)
-          return
-        }
-
-        if (!data.user.verified) {
-          router.push('/?error=unverified')
-          return
-        }
-
-        setIsTokenVerified(true)
-      } catch (error) {
-        router.push('/login?returnTo=/admin')
-      }
+    if (isAuthenticated && user) {
+      setIsTokenVerified(true)
     }
-
-    verifyToken()
-  }, [router])
+  }, [isAuthenticated, user])
 
   // Fetch models from API
   useEffect(() => {
