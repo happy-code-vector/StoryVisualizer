@@ -89,7 +89,7 @@ For each field:
 - **characters.attributes**: Visual elements and personality traits.
 - **characters.relationships**: Describe key connections.
 - **characters.audioCues**: Specify voice or sound motifs.
-- **scenes.description**: Expand into a rich, sequential script: Open with establishing shot and atmosphere; detail character appearances/actions/dialogues; describe changes in situations/emotions/dynamics; weave in camera angles/movements, visual style, audio, and how elements evolve for tension/drama/wonder; conclude with the transition to the next scene (around 100 words).
+- **scenes.description**: Expand into a rich, sequential script: Open with establishing shot and atmosphere; detail character appearances/actions/dialogues; describe changes in situations/emotions/dynamics; weave in camera angles/movements, visual style, audio, and how elements evolve for tension/drama/wonder; conclude with the transition to the next scene (80~100 words).
 - **scenes.duration**: Estimate the scene’s duration in the video (e.g., "30") Should not exceed 20 seconds and represented in number, calculated in seconds.
 - **scenes.audioElements**: List sound effects, music, or dialogue cues.
 
@@ -100,7 +100,7 @@ ${preprocessedStory}`
 
     // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "user",
@@ -108,7 +108,7 @@ ${preprocessedStory}`
         },
       ],
       temperature: 0.3,
-      max_tokens: 8000,
+      max_tokens: 12000,
     })
 
     const content = response.choices[0].message.content || "{}"
