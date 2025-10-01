@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban } from "lucide-react"
+import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban, Star } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { getCookie } from '@/lib/cookie-utils'
@@ -501,7 +501,10 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               {model.isDefault ? (
-                                <span className="text-green-600">✓</span>
+                                <span className="flex items-center gap-1 text-amber-600">
+                                  <Star className="w-4 h-4 fill-current" />
+                                  <span className="text-xs font-medium">Default</span>
+                                </span>
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )}

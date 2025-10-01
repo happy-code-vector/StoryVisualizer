@@ -12,12 +12,12 @@ const supabase = createClient(
 
 async function verifyUser() {
   const username = process.argv[2]
-  
+
   if (!username) {
     console.error('Usage: npm run verify-user <username>')
     process.exit(1)
   }
-  
+
   try {
     // Update the user's verified status
     const { data, error } = await supabase
@@ -25,11 +25,11 @@ async function verifyUser() {
       .update({ verified: true })
       .eq('username', username)
       .select()
-    
+
     if (error) {
       throw new Error(error.message)
     }
-    
+
     if (data.length === 0) {
       process.exit(1)
     }

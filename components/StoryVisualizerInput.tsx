@@ -6,7 +6,7 @@ import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Progress } from "./ui/progress"
-import { Sparkles, BookOpen, Users, ImageIcon, Wand2, History } from "lucide-react"
+import { Sparkles, BookOpen, Users, ImageIcon, Wand2, History, Star } from "lucide-react"
 import { analyzeStoryWithOpenAI } from "../lib/openai-service"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
@@ -15,8 +15,8 @@ export default function StoryVisualizerInput() {
   const [storyTitle, setStoryTitle] = useState("")
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [characterModel, setCharacterModel] = useState("nano-banana")
-  const [sceneModel, setSceneModel] = useState("flux-dev")
+  const [characterModel, setCharacterModel] = useState("")
+  const [sceneModel, setSceneModel] = useState("")
   const [models, setModels] = useState<{character: any[], scene: any[]}>({character: [], scene: []})
   const router = useRouter()
 
@@ -32,26 +32,57 @@ export default function StoryVisualizerInput() {
             character: data.characterModels,
             scene: data.sceneModels
           })
+          
+          // Set default models
+          const defaultCharacterModel = data.characterModels.find((m: any) => m.isDefault)
+          const defaultSceneModel = data.sceneModels.find((m: any) => m.isDefault)
+          
+          if (defaultCharacterModel && !characterModel) {
+            setCharacterModel(defaultCharacterModel.name)
+          }
+          if (defaultSceneModel && !sceneModel) {
+            setSceneModel(defaultSceneModel.name)
+          }
         } else if (data.models) {
           // If only models array is returned, filter by type
+          const characterModels = data.models.filter((m: any) => m.type === 'character')
+          const sceneModels = data.models.filter((m: any) => m.type === 'scene')
+          
           setModels({
-            character: data.models.filter((m: any) => m.type === 'character'),
-            scene: data.models.filter((m: any) => m.type === 'scene')
+            character: characterModels,
+            scene: sceneModels
           })
+          
+          // Set default models
+          const defaultCharacterModel = characterModels.find((m: any) => m.isDefault)
+          const defaultSceneModel = sceneModels.find((m: any) => m.isDefault)
+          
+          if (defaultCharacterModel && !characterModel) {
+            setCharacterModel(defaultCharacterModel.name)
+          }
+          if (defaultSceneModel && !sceneModel) {
+            setSceneModel(defaultSceneModel.name)
+          }
         } else {
           // Fallback to default models
           setModels({
-            character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/"}],
-            scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev"}]
+            character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/", isDefault: true}],
+            scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev", isDefault: true}]
           })
+          
+          if (!characterModel) setCharacterModel("nano-banana")
+          if (!sceneModel) setSceneModel("flux-dev")
         }
       } catch (error) {
         console.error("Error fetching models:", error)
         // Set default models if fetch fails
         setModels({
-          character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/"}],
-          scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev"}]
+          character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/", isDefault: true}],
+          scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev", isDefault: true}]
         })
+        
+        if (!characterModel) setCharacterModel("nano-banana")
+        if (!sceneModel) setSceneModel("flux-dev")
       }
     }
     
@@ -164,7 +195,11 @@ export default function StoryVisualizerInput() {
                       <SelectContent>
                         {models.character.map((model: any) => (
                           <SelectItem key={model.name} value={model.name}>
-                            {model.name}
+                            <div className="flex items-center gap-2">
+                              {model.isDefault && <Star className="w-3 h-3 fill-amber-400 text-amber-400" />}
+                              <span>{model.name}</span>
+                              {model.isDefault && <span className="text-xs text-amber-600">(Default)</span>}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -180,7 +215,11 @@ export default function StoryVisualizerInput() {
                       <SelectContent>
                         {models.scene.map((model: any) => (
                           <SelectItem key={model.name} value={model.name}>
-                            {model.name}
+                            <div className="flex items-center gap-2">
+                              {model.isDefault && <Star className="w-3 h-3 fill-amber-400 text-amber-400" />}
+                              <span>{model.name}</span>
+                              {model.isDefault && <span className="text-xs text-amber-600">(Default)</span>}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>

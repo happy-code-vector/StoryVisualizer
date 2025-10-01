@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { Navigation } from "@/components/Navigation"
 import { AuthProvider } from "@/contexts/AuthContext"
+import ScrollbarHandler from "@/components/ScrollbarHandler"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
       <body>
         <AuthProvider>
+          <ScrollbarHandler />
           <Navigation />
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
         </AuthProvider>
