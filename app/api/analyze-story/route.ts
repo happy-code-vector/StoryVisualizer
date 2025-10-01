@@ -54,28 +54,11 @@ export async function POST(request: Request) {
     const preprocessedStory = preprocessText(story)
 
     // Create the prompt for OpenAI
-    const prompt = `You are an expert literary analyst AI. Your task is to analyze a story and extract detailed information about characters, scenes, and settings. Process the story and provide a structured JSON response with the following information:
+    const prompt = `You are an expert literary analyst AI tasked with analyzing a story to extract detailed information about characters and scenes, optimized for generating stunning, cohesive video clips that merge into a single video. Your goal is to process the story and produce a JSON response with rich, vivid descriptions that support dynamic video production, ensuring narrative flow, visual continuity, and emotional depth.
 
-1. Characters:
-   - Name
-   - Number of mentions (count how many times each character is mentioned)
-   - Detailed description based on context
-   - Physical and personality attributes
-   - Key relationships with other characters
+Analyze the story thoroughly and provide comprehensive, cinematic details for each category. For characters, craft the 'description' field as a rich, vivid narrative focusing on physical appearance (face shape, expressions, age, build, skin tone, hair, eyes), clothing, mannerisms, emotional states, and how they move/interact to evoke stunning visuals. For scenes, craft the 'description' field as a detailed, step-by-step script-like narrative (200-400 words) that flows sequentially: describe opening visuals, character entrances/actions/dialogues, situation changes, emotional shifts, interactions, evolving dynamics, integrated camera angles/movements/visual style, audio elements, and the transition to the next scene, using immersive, sensory language to inspire video generation models.
 
-2. Scenes:
-   - Sequential numbering starting from 1
-   - Title or brief summary
-   - Detailed description/atmosphere
-   - Setting/location
-   - Time of day
-   - Mood/atmosphere
-   - Key actions that occur
-   - Characters present in each scene
-   - Important objects mentioned
-   - Dominant emotions
-
-Analyze the story thoroughly and provide comprehensive information for each category. Be specific and detailed in your analysis.
+Ensure scenes connect seamlessly with recurring motifs and smooth transitions for continuous video merging. Use cinematic, vivid prose throughout to make outputs directly usable for creating engaging, fluid video clips.
 
 Return ONLY a valid JSON object with this exact structure:
 {
@@ -84,8 +67,9 @@ Return ONLY a valid JSON object with this exact structure:
       "name": "string",
       "mentions": number,
       "description": "string",
-      "attributes": ["string"],
-      "relationships": ["string"]
+      "visualAttributes": ["string"],
+      "relationships": ["string"],
+      "audioCues": ["string"]
     }
   ],
   "scenes": [
@@ -93,16 +77,23 @@ Return ONLY a valid JSON object with this exact structure:
       "id": number,
       "title": "string",
       "description": "string",
-      "setting": "string",
-      "timeOfDay": "string",
-      "mood": "string",
-      "keyActions": ["string"],
       "characters": ["string"],
-      "objects": ["string"],
-      "emotions": ["string"]
+      "duration": "string",
+      "audioElements": ["string"]
     }
   ]
 }
+
+For each field:
+- **characters.description**: A vivid, immersive paragraph emphasizing physical visuals.
+- **characters.visualAttributes**: Combine visual elements and traits for video portrayal.
+- **characters.relationships**: Describe key connections.
+- **characters.audioCues**: Specify voice or sound motifs.
+- **scenes.description**: Expand into a rich, sequential script: Open with establishing shot and atmosphere; detail character appearances/actions/dialogues; describe changes in situations/emotions/dynamics; weave in camera angles/movements, visual style, audio, and how elements evolve for tension/drama/wonder; conclude with the transition to the next scene (around 100 words).
+- **scenes.duration**: Estimate the scene’s duration in the video (e.g., "30") Should not exceed 20 seconds and represented in number, calculated in seconds.
+- **scenes.audioElements**: List sound effects, music, or dialogue cues.
+
+Ensure all enriched descriptions use sensory, dynamic language to directly feed video generation models for stunning, fluid clips with character evolutions and situational changes.
 
 Story to analyze:
 ${preprocessedStory}`
