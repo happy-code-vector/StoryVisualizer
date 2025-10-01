@@ -7,6 +7,9 @@ const supabase = createClient(
   process.env.SUPABASE_API_KEY || ''
 )
 
+// Add export for dynamic config to prevent static optimization issues
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     // Get the authorization header
