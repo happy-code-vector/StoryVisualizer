@@ -100,7 +100,7 @@ ${preprocessedStory}`
 
     // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
@@ -108,7 +108,7 @@ ${preprocessedStory}`
         },
       ],
       temperature: 0.3,
-      max_tokens: 4000,
+      max_tokens: 8000,
     })
 
     const content = response.choices[0].message.content || "{}"
