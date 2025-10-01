@@ -13,19 +13,16 @@ interface Character {
   description: string
   attributes: string[]
   relationships: string[]
+  audioCues: string[]
 }
 
 interface Scene {
   id: number
   title: string
   description: string
-  setting: string
-  timeOfDay: string
-  mood: string
-  keyActions: string[]
   characters: string[]
-  objects: string[]
-  emotions: string[]
+  duration: number | string // Accept both number and string, convert as needed
+  audioElements: string[]
 }
 
 interface StoryAnalysis {
@@ -45,7 +42,7 @@ function preprocessText(text: string): string {
 export async function POST(request: Request) {
   try {
     const { story, title } = await request.json()
-    
+
     if (!story) {
       return NextResponse.json({ error: 'Story content is required' }, { status: 400 })
     }
@@ -60,7 +57,7 @@ Analyze the story thoroughly: Break down the narrative into a sufficient number 
 
 Ensure scenes connect seamlessly with recurring motifs and smooth transitions for continuous video merging. Use cinematic, vivid prose throughout to make outputs directly usable for creating engaging, fluid video clips.
 
-Return ONLY a valid JSON object with this exact structure:
+IMPORTANT: Return ONLY a valid JSON object without any markdown formatting, code blocks, or additional text. Do not wrap the JSON in \`\`\`json\`\`\` blocks. Return the raw JSON object directly with this exact structure:
 {
   "characters": [
     {
@@ -100,7 +97,7 @@ ${preprocessedStory}`
 
     // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
@@ -112,17 +109,35 @@ ${preprocessedStory}`
     })
 
     const content = response.choices[0].message.content || "{}"
-    
+
     let analysis: StoryAnalysis;
     try {
       analysis = JSON.parse(content)
     } catch (parseError) {
       console.error("Error parsing JSON response:", content)
-      const jsonMatch = content.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0])
+
+      // Try to extract JSON from markdown code blocks
+      const markdownJsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/)
+      if (markdownJsonMatch) {
+        try {
+          analysis = JSON.parse(markdownJsonMatch[1])
+        } catch (markdownParseError) {
+          console.error("Error parsing markdown JSON:", markdownJsonMatch[1])
+          throw new Error("Failed to parse JSON from markdown code block")
+        }
       } else {
-        throw new Error("Failed to extract JSON from OpenAI response")
+        // Fallback: try to find any JSON object in the content
+        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          try {
+            analysis = JSON.parse(jsonMatch[0])
+          } catch (fallbackParseError) {
+            console.error("Error parsing fallback JSON:", jsonMatch[0])
+            throw new Error("Failed to extract valid JSON from OpenAI response")
+          }
+        } else {
+          throw new Error("No JSON found in OpenAI response")
+        }
       }
     }
 

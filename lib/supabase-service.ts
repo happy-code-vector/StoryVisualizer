@@ -112,7 +112,7 @@ export async function saveStoryAnalysis(
         title: scene.title,
         description: scene.description,
         characters: JSON.stringify(scene.characters || []),
-        duration: scene.duration || null,
+        duration: typeof scene.duration === 'string' ? parseInt(scene.duration) : (scene.duration || null),
         audio_elements: JSON.stringify(scene.audioElements || []),
         image_url: scene.imageUrl || null
       }))
