@@ -41,8 +41,6 @@ async function createRootUser() {
     if (error) {
       throw new Error(error.message)
     }
-    
-    console.log(`Root user ${username} created successfully with ID: ${data[0].id}`)
   } catch (error: any) {
     console.error('Error creating root user:', error.message)
     process.exit(1)

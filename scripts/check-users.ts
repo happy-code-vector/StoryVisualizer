@@ -21,9 +21,6 @@ async function checkUsers() {
       throw new Error(error.message);
     }
     
-    console.log('Users in database:');
-    console.log(JSON.stringify(data, null, 2));
-    
     // Check for root users specifically
     const { data: rootUsers, error: rootError } = await supabase
       .from('users')
@@ -34,9 +31,6 @@ async function checkUsers() {
       throw new Error(rootError.message);
     }
     
-    console.log('\nRoot users:');
-    console.log(JSON.stringify(rootUsers, null, 2));
-    
     // Check for admin users
     const { data: adminUsers, error: adminError } = await supabase
       .from('users')
@@ -46,9 +40,6 @@ async function checkUsers() {
     if (adminError) {
       throw new Error(adminError.message);
     }
-    
-    console.log('\nAdmin users:');
-    console.log(JSON.stringify(adminUsers, null, 2));
   } catch (error: any) {
     console.error('Error checking users:', error.message);
     process.exit(1);

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft, Eye, Trash2 } from "lucide-react"
+import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft, Eye, Trash2, Settings } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 interface Story {
@@ -17,6 +17,10 @@ interface Story {
   analysis: {
     characters: Array<{ name: string; mentions: number }>
     scenes: Array<{ id: number; title: string }>
+  }
+  models: {
+    characterModel: string | null
+    sceneModel: string | null
   }
   createdAt: string
 }
@@ -239,6 +243,17 @@ export default function HistoryPage() {
                           {story.analysis.characters?.reduce((sum, c) => sum + c.mentions, 0) || 0} total mentions
                         </span>
                       </div>
+                      {(story.models?.characterModel || story.models?.sceneModel) && (
+                        <div className="flex items-center gap-2">
+                          <Settings className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            Models: {[
+                              story.models.characterModel,
+                              story.models.sceneModel
+                            ].filter(Boolean).join(', ')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Dialog>

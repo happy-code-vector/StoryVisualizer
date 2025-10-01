@@ -31,11 +31,8 @@ async function verifyUser() {
     }
     
     if (data.length === 0) {
-      console.log(`No user found with username: ${username}`)
       process.exit(1)
     }
-    
-    console.log(`User ${username} verified successfully`)
   } catch (error: any) {
     console.error('Error verifying user:', error.message)
     process.exit(1)

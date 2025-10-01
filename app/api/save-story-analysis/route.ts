@@ -3,14 +3,14 @@ import { saveStoryAnalysis } from '@/lib/supabase-service'
 
 export async function POST(request: Request) {
   try {
-    const { title, story, analysis } = await request.json()
+    const { title, story, analysis, models } = await request.json()
     
     if (!story || !analysis) {
       return NextResponse.json({ error: 'Story content and analysis are required' }, { status: 400 })
     }
 
-    // Save the complete analysis with images to the database
-    const storyId = await saveStoryAnalysis(title, story, analysis)
+    // Save the complete analysis with images and model information to the database
+    const storyId = await saveStoryAnalysis(title, story, analysis, models)
 
     if (storyId === null) {
       return NextResponse.json({ error: 'Failed to save story analysis' }, { status: 500 })

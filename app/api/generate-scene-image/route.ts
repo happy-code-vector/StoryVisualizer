@@ -22,12 +22,8 @@ async function generateSceneImage(scene: {
   try {
     const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, detailed environment, high quality, ultra realistic style`
     
-    console.log(scene)
-    // If we have character images, we'll use image-to-image generation
     if (scene.characterImages && scene.characterImages.length > 0) {
-      console.log(`[SceneImage] Generating scene image with ${scene.characterImages.length} character references`)
       
-      // Use the model link for image-to-image generation as well
       const response = await fetch(`${modelLink}`, {
         method: 'POST',
         headers: {
@@ -60,7 +56,6 @@ async function generateSceneImage(scene: {
         throw new Error('No image generated')
       }
     } else {
-      console.log("[SceneImage] Generating scene image without character references")
       
       const response = await fetch(modelLink, {
         method: 'POST',

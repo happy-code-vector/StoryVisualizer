@@ -59,7 +59,7 @@ export default function VisualizePage() {
 
   useEffect(() => {
     setIsClient(true)
-    
+
     const storedAnalysis = sessionStorage.getItem('storyAnalysis')
     if (storedAnalysis) {
       const analysis: StoryAnalysis = JSON.parse(storedAnalysis)
@@ -84,7 +84,7 @@ export default function VisualizePage() {
 
       setCharacters(processedCharacters)
       setScenes(processedScenes)
-      
+
       // Generate images for characters and scenes
       generateImages(processedCharacters, processedScenes)
     }
@@ -92,7 +92,7 @@ export default function VisualizePage() {
 
   const generateImages = async (characters: Character[], scenes: Scene[]) => {
     setProcessing({ step: "Generating character images...", progress: 10, isProcessing: true })
-    
+
     let id = 0
     const charactersWithImages = await Promise.all(
       characters.map(async (character, index) => {
@@ -114,15 +114,15 @@ export default function VisualizePage() {
           }
 
           const { imageUrl } = await response.json()
-          
+
           const progress = 10 + Math.floor((id + 1) / characters.length * 40)
-          setProcessing({ 
-            step: `Generating character images (${id + 1}/${characters.length})...`, 
-            progress, 
-            isProcessing: true 
+          setProcessing({
+            step: `Generating character images (${id + 1}/${characters.length})...`,
+            progress,
+            isProcessing: true
           })
           id++
-          
+
           return {
             ...character,
             imageUrl
@@ -139,18 +139,18 @@ export default function VisualizePage() {
 
     setCharacters(charactersWithImages)
     setProcessing({ step: "Generating scene images...", progress: 50, isProcessing: true })
-    
+
     id = 0
     const scenesWithImages = await Promise.all(
       scenes.map(async (scene, index) => {
-        try {          
+        try {
           const characterImages = scene.characters
             .map(characterName => {
               const character = charactersWithImages.find(c => c.name === characterName);
               return character?.imageUrl ? character.imageUrl : null;
             })
             .filter(Boolean) as string[];
-          
+
           const response = await fetch('/api/generate-scene-image', {
             method: 'POST',
             headers: {
@@ -171,15 +171,15 @@ export default function VisualizePage() {
           }
 
           const { imageUrl } = await response.json()
-          
+
           const progress = 50 + Math.floor((id + 1) / scenes.length * 40)
-          setProcessing({ 
-            step: `Generating scene images (${id + 1}/${scenes.length})...`, 
-            progress, 
-            isProcessing: true 
+          setProcessing({
+            step: `Generating scene images (${id + 1}/${scenes.length})...`,
+            progress,
+            isProcessing: true
           })
           id++
-          
+
           return {
             ...scene,
             imageUrl
@@ -195,9 +195,11 @@ export default function VisualizePage() {
     )
 
     setScenes(scenesWithImages)
-    
+
     setProcessing({ step: "Saving to database...", progress: 90, isProcessing: true })
-    
+
+
+
     try {
       const response = await fetch('/api/save-story-analysis', {
         method: 'POST',
@@ -210,6 +212,10 @@ export default function VisualizePage() {
           analysis: {
             characters: charactersWithImages,
             scenes: scenesWithImages
+          },
+          models: {
+            characterModel: storyAnalysis?.characterModel,
+            sceneModel: storyAnalysis?.sceneModel
           }
         }),
       })
@@ -218,18 +224,18 @@ export default function VisualizePage() {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to save story analysis')
       }
-      
+
       const result = await response.json()
     } catch (error) {
       console.error('[VisualizePage] Error saving story analysis to database:', error)
     }
-    
+
     setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
   }
 
   const exportResults = () => {
     if (!storyAnalysis) return
-    
+
     const results = {
       story: storyAnalysis.story.substring(0, 200) + "...",
       characters: characters.map((c) => ({
@@ -287,17 +293,17 @@ export default function VisualizePage() {
             </h2>
           </div>
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => router.push('/history')}
               className="flex items-center gap-2"
             >
               <History className="w-4 h-4" />
               History
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={exportResults} 
+            <Button
+              variant="outline"
+              onClick={exportResults}
               className="flex items-center gap-2 bg-transparent"
               disabled={processing.isProcessing}
             >

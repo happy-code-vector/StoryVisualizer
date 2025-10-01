@@ -66,11 +66,9 @@ export default function StoryVisualizerInput() {
 
     try {
       setProgress(30)
-      console.log("[OpenAI] Starting story analysis...")
       const analysis = await analyzeStoryWithOpenAI(story, storyTitle || "Untitled Story")
       
       setProgress(40)
-      console.log("[OpenAI] Analysis complete, navigating to visualize page...")
       
       const payload = {
         title: storyTitle || "Untitled Story",

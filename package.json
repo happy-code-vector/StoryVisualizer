@@ -9,7 +9,8 @@
     "start": "next start",
     "create-root-user": "npx tsx scripts/create-root-user.ts",
     "verify-user": "npx tsx scripts/verify-user.ts",
-    "check-users": "npx tsx scripts/check-users.ts"
+    "check-users": "npx tsx scripts/check-users.ts",
+    "migrate-models": "npx tsx scripts/migrate-models.ts"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

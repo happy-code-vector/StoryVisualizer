@@ -6,6 +6,8 @@ interface StoryRecord {
   title: string
   story: string
   analysis: string // JSON string
+  character_model_name: string | null
+  scene_model_name: string | null
   created_at: string
 }
 
@@ -54,17 +56,23 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 export async function saveStoryAnalysis(
   title: string,
   story: string,
-  analysis: any
+  analysis: any,
+  models?: {
+    characterModel?: string;
+    sceneModel?: string;
+  }
 ): Promise<number | null> {
   try {
-    // Insert the story
+    // Insert the story with model information
     const { data: storyData, error: storyError } = await supabase
       .from('stories')
       .insert([
         {
           title: title,
           story: story,
-          analysis: JSON.stringify(analysis)
+          analysis: JSON.stringify(analysis),
+          character_model_name: models?.characterModel || null,
+          scene_model_name: models?.sceneModel || null
         }
       ])
       .select()
@@ -138,6 +146,10 @@ export async function getAllStories(): Promise<Array<{
   title: string
   story: string
   analysis: any
+  models: {
+    characterModel: string | null
+    sceneModel: string | null
+  }
   createdAt: string
 }> | null> {
   try {
@@ -212,6 +224,10 @@ export async function getAllStories(): Promise<Array<{
         title: story.title,
         story: story.story,
         analysis: updatedAnalysis,
+        models: {
+          characterModel: story.character_model_name,
+          sceneModel: story.scene_model_name
+        },
         createdAt: story.created_at
       }
     }))
@@ -230,6 +246,10 @@ export async function getStoryById(id: number): Promise<{
   title: string
   story: string
   analysis: any
+  models: {
+    characterModel: string | null
+    sceneModel: string | null
+  }
   createdAt: string
 } | null> {
   try {
@@ -303,6 +323,10 @@ export async function getStoryById(id: number): Promise<{
       title: story.title,
       story: story.story,
       analysis: updatedAnalysis,
+      models: {
+        characterModel: story.character_model_name,
+        sceneModel: story.scene_model_name
+      },
       createdAt: story.created_at
     }
   } catch (error) {
