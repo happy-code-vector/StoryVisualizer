@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Save, Trash2, Check, X } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { getCookie } from '@/lib/cookie-utils'
@@ -28,7 +29,7 @@ interface User {
   created_at: string
 }
 
-export default function ModelManagementPage() {
+export default function AdminDashboard() {
   const [models, setModels] = useState<Model[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [newModel, setNewModel] = useState({
@@ -229,6 +230,100 @@ export default function ModelManagementPage() {
     }
   }
 
+  const handleDisableUser = async (userId: number, username: string) => {
+    if (!confirm(`Are you sure you want to disable user "${username}"?`)) {
+      return
+    }
+
+    try {
+      const token = getCookie('authToken')
+      const response = await fetch('/api/users/disable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (response.ok) {
+        // Update the user's verified status to false (disabled)
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, verified: false } : user
+        ))
+      } else {
+        const error = await response.json()
+        alert(`Error disabling user: ${error.error}`)
+      }
+    } catch (error) {
+      alert('Error disabling user')
+    }
+  }
+
+  const handleDeleteUser = async (userId: number, username: string) => {
+    if (!confirm(`Are you sure you want to permanently delete user "${username}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const token = getCookie('authToken')
+      const response = await fetch('/api/users/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (response.ok) {
+        // Remove the user from the state
+        setUsers(users.filter(user => user.id !== userId))
+      } else {
+        const error = await response.json()
+        alert(`Error deleting user: ${error.error}`)
+      }
+    } catch (error) {
+      alert('Error deleting user')
+    }
+  }
+
+  const handleRoleChange = async (userId: number, username: string, newRole: string) => {
+    if (!confirm(`Are you sure you want to change ${username}'s role to ${newRole}?`)) {
+      return
+    }
+
+    try {
+      const token = getCookie('authToken')
+      const response = await fetch('/api/users/role', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, role: newRole }),
+      })
+
+      if (response.ok) {
+        // Update the user's role in the state
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        ))
+      } else {
+        const error = await response.json()
+        alert(`Error changing user role: ${error.error}`)
+      }
+    } catch (error) {
+      alert('Error changing user role')
+    }
+  }
+
+  // Filter out root users from the display
+  const filteredUsers = users.filter(user => user.role !== 'root')
+  
+  // Check if current user is root (can change roles)
+  const isRootUser = user?.role === 'root'
+
   // Show access denied if user doesn't have admin access
   if (accessDenied) {
     return (
@@ -297,196 +392,252 @@ export default function ModelManagementPage() {
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Add New Model Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Model</CardTitle>
-            <CardDescription>Add a new AI model for character or scene generation</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="modelName">Model Name</Label>
-              <Input
-                id="modelName"
-                value={newModel.name}
-                onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
-                placeholder="Enter model name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="modelType">Model Type</Label>
-              <Select value={newModel.type} onValueChange={(value: 'character' | 'scene') => setNewModel({ ...newModel, type: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select model type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="character">Character Generation</SelectItem>
-                  <SelectItem value="scene">Scene Generation</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="modelLink">API Link</Label>
-              <Input
-                id="modelLink"
-                value={newModel.link}
-                onChange={(e) => setNewModel({ ...newModel, link: e.target.value })}
-                placeholder="Enter API endpoint URL"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isDefault"
-                checked={newModel.isDefault}
-                onChange={(e) => setNewModel({ ...newModel, isDefault: e.target.checked })}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="isDefault">Set as default model</Label>
-            </div>
-            
-            <Button onClick={handleAddModel} className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Model
-            </Button>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="models" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="models" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Model Management
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            User Management
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Models List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Existing Models</CardTitle>
-            <CardDescription>Manage available AI models for story visualization</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Default</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {models.map((model) => (
-                    <TableRow key={model.id}>
-                      <TableCell className="font-medium">{model.name}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          model.type === 'character' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {model.type}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {model.isDefault ? (
-                          <span className="text-green-600">✓</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteModel(model.id, model.name)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <TabsContent value="models" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Add New Model Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Model</CardTitle>
+                <CardDescription>Add a new AI model for character or scene generation</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="modelName">Model Name</Label>
+                  <Input
+                    id="modelName"
+                    value={newModel.name}
+                    onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
+                    placeholder="Enter model name"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="modelType">Model Type</Label>
+                  <Select value={newModel.type} onValueChange={(value: 'character' | 'scene') => setNewModel({ ...newModel, type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select model type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="character">Character Generation</SelectItem>
+                      <SelectItem value="scene">Scene Generation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="modelLink">API Link</Label>
+                  <Input
+                    id="modelLink"
+                    value={newModel.link}
+                    onChange={(e) => setNewModel({ ...newModel, link: e.target.value })}
+                    placeholder="Enter API endpoint URL"
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={newModel.isDefault}
+                    onChange={(e) => setNewModel({ ...newModel, isDefault: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="isDefault">Set as default model</Label>
+                </div>
+                
+                <Button onClick={handleAddModel} className="w-full">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Model
+                </Button>
+              </CardContent>
+            </Card>
 
-        {/* Users List */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>Manage user accounts and verification status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {usersLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Verified</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.username}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          user.role === 'root' 
-                            ? 'bg-purple-100 text-purple-800' 
-                            : user.role === 'admin'
-                            ? 'bg-blue-100 text-blue-800'
-                            : user.role === 'paid'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {user.verified ? (
-                          <span className="text-green-600 flex items-center">
-                            <Check className="w-4 h-4 mr-1" /> Verified
-                          </span>
-                        ) : (
-                          <span className="text-red-600 flex items-center">
-                            <X className="w-4 h-4 mr-1" /> Pending
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {!user.verified && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleVerifyUser(user.id, user.username)}
-                          >
-                            <Check className="w-4 h-4 mr-1" />
-                            Verify
-                          </Button>
-                        )}
-                      </TableCell>
+            {/* Models List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Existing Models</CardTitle>
+                <CardDescription>Manage available AI models for story visualization</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Default</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {models.map((model) => (
+                          <TableRow key={model.id}>
+                            <TableCell className="font-medium">{model.name}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                model.type === 'character' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {model.type}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {model.isDefault ? (
+                                <span className="text-green-600">✓</span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteModel(model.id, model.name)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>
+                {isRootUser 
+                  ? "Manage user accounts, roles, and verification status (Root privileges)" 
+                  : "Manage user accounts and verification status (Admin privileges)"
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {usersLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.username}</TableCell>
+                        <TableCell>
+                          {isRootUser ? (
+                            <Select 
+                              value={user.role} 
+                              onValueChange={(newRole) => handleRoleChange(user.id, user.username, newRole)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="paid">Paid</SelectItem>
+                                <SelectItem value="unpaid">Unpaid</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              user.role === 'admin'
+                                ? 'bg-blue-100 text-blue-800'
+                                : user.role === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {user.role}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {user.verified ? (
+                            <span className="text-green-600 flex items-center">
+                              <Check className="w-4 h-4 mr-1" /> Active
+                            </span>
+                          ) : (
+                            <span className="text-red-600 flex items-center">
+                              <X className="w-4 h-4 mr-1" /> Disabled
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            {user.verified ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDisableUser(user.id, user.username)}
+                              >
+                                <Ban className="w-4 h-4 mr-1" />
+                                Disable
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyUser(user.id, user.username)}
+                              >
+                                <Check className="w-4 h-4 mr-1" />
+                                Enable
+                              </Button>
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user.id, user.username)}
+                            >
+                              <UserX className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
