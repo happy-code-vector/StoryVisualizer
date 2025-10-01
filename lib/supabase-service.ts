@@ -433,7 +433,11 @@ export async function getModelsByType(type: 'character' | 'scene'): Promise<Mode
       return null
     }
     
-    return data as ModelRecord[]
+    // Map is_default to isDefault
+    return data.map((item) => ({
+      ...item,
+      isDefault: item.is_default,
+    })) as ModelRecord[];
   } catch (error) {
     console.error('Error getting models by type:', error)
     return null
@@ -454,7 +458,10 @@ export async function getModelByName(name: string): Promise<ModelRecord | null> 
       return null
     }
     
-    return data as ModelRecord
+    return {
+      ...data,
+      isDefault: data.is_default,
+    } as ModelRecord;
   } catch (error) {
     console.error('Error getting model by name:', error)
     return null
@@ -561,8 +568,14 @@ export async function getAllModels(): Promise<{ characterModels: ModelRecord[], 
     }
     
     return {
-      characterModels: characterModels as ModelRecord[],
-      sceneModels: sceneModels as ModelRecord[]
+      characterModels: characterModels.map((item) => ({
+        ...item,
+        isDefault: item.is_default,
+      })) as ModelRecord[],
+      sceneModels: sceneModels.map((item) => ({
+        ...item,
+        isDefault: item.is_default,
+      })) as ModelRecord[]
     }
   } catch (error) {
     console.error('Error getting all models:', error)
