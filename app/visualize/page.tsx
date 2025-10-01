@@ -15,6 +15,8 @@ interface Character {
   imageUrl?: string
   mentions: number
   attributes: string[]
+  relationships: string[]
+  audioCues: string[]
 }
 
 interface Scene {
@@ -22,10 +24,9 @@ interface Scene {
   title: string
   description: string
   characters: string[]
-  setting: string
-  mood: string
+  duration: number
+  audioElements: string[]
   imageUrl?: string
-  analysis: any
 }
 
 interface ProcessingState {

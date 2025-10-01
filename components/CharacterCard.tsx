@@ -5,7 +5,7 @@ import { Card, CardContent } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
-import { Eye, User } from "lucide-react"
+import { Eye, User, Heart, Volume2 } from "lucide-react"
 
 interface Character {
   name: string
@@ -13,6 +13,8 @@ interface Character {
   imageUrl?: string
   mentions: number
   attributes: string[]
+  relationships: string[]
+  audioCues: string[]
 }
 
 interface CharacterCardProps {
@@ -78,11 +80,41 @@ export default function CharacterCard({ character, index }: CharacterCardProps) 
                     </div>
                     {character.attributes.length > 0 && (
                       <div>
-                        <h4 className="font-semibold mb-2 text-lg">Attributes</h4> {/* Larger text */}
+                        <h4 className="font-semibold mb-2 text-lg">Attributes</h4>
                         <div className="flex flex-wrap gap-2">
                           {character.attributes.map((attr, i) => (
-                            <Badge key={i} variant="outline" className="text-base px-2 py-1"> {/* Larger badge */}
+                            <Badge key={i} variant="outline" className="text-base px-2 py-1">
                               {attr}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {character.relationships?.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-2 text-lg flex items-center gap-2">
+                          <Heart className="w-4 h-4" />
+                          Relationships
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {character.relationships.map((rel, i) => (
+                            <Badge key={i} variant="secondary" className="text-base px-2 py-1">
+                              {rel}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {character.audioCues?.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-2 text-lg flex items-center gap-2">
+                          <Volume2 className="w-4 h-4" />
+                          Audio Cues
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {character.audioCues.map((cue, i) => (
+                            <Badge key={i} variant="outline" className="text-base px-2 py-1">
+                              {cue}
                             </Badge>
                           ))}
                         </div>

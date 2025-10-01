@@ -19,6 +19,7 @@ interface CharacterRecord {
   description: string
   attributes: string // JSON string
   relationships: string // JSON string
+  audio_cues: string | null // JSON string
   image_url: string | null
 }
 
@@ -28,13 +29,9 @@ interface SceneRecord {
   scene_id: number
   title: string
   description: string
-  setting: string
-  time_of_day: string
-  mood: string
-  key_actions: string // JSON string
   characters: string // JSON string
-  objects: string // JSON string
-  emotions: string // JSON string
+  duration: number | null // Duration in seconds
+  audio_elements: string | null // JSON string
   image_url: string | null
 }
 
@@ -93,6 +90,7 @@ export async function saveStoryAnalysis(
         description: character.description,
         attributes: JSON.stringify(character.attributes || []),
         relationships: JSON.stringify(character.relationships || []),
+        audio_cues: JSON.stringify(character.audioCues || []),
         image_url: character.imageUrl || null
       }))
       
@@ -113,13 +111,9 @@ export async function saveStoryAnalysis(
         scene_id: scene.id,
         title: scene.title,
         description: scene.description,
-        setting: scene.setting,
-        time_of_day: scene.timeOfDay,
-        mood: scene.mood,
-        key_actions: JSON.stringify(scene.keyActions || []),
         characters: JSON.stringify(scene.characters || []),
-        objects: JSON.stringify(scene.objects || []),
-        emotions: JSON.stringify(scene.emotions || []),
+        duration: scene.duration || null,
+        audio_elements: JSON.stringify(scene.audioElements || []),
         image_url: scene.imageUrl || null
       }))
       
@@ -202,19 +196,16 @@ export async function getAllStories(): Promise<Array<{
           description: char.description,
           attributes: JSON.parse(char.attributes),
           relationships: JSON.parse(char.relationships),
+          audioCues: char.audio_cues ? JSON.parse(char.audio_cues) : [],
           imageUrl: char.image_url
         })),
         scenes: scenes.map(scene => ({
           id: scene.scene_id,
           title: scene.title,
           description: scene.description,
-          setting: scene.setting,
-          timeOfDay: scene.time_of_day,
-          mood: scene.mood,
-          keyActions: JSON.parse(scene.key_actions),
           characters: JSON.parse(scene.characters),
-          objects: JSON.parse(scene.objects),
-          emotions: JSON.parse(scene.emotions),
+          duration: scene.duration,
+          audioElements: scene.audio_elements ? JSON.parse(scene.audio_elements) : [],
           imageUrl: scene.image_url
         }))
       }
@@ -301,19 +292,16 @@ export async function getStoryById(id: number): Promise<{
         description: char.description,
         attributes: JSON.parse(char.attributes),
         relationships: JSON.parse(char.relationships),
+        audioCues: char.audio_cues ? JSON.parse(char.audio_cues) : [],
         imageUrl: char.image_url
       })),
       scenes: scenes.map(scene => ({
         id: scene.scene_id,
         title: scene.title,
         description: scene.description,
-        setting: scene.setting,
-        timeOfDay: scene.time_of_day,
-        mood: scene.mood,
-        keyActions: JSON.parse(scene.key_actions),
         characters: JSON.parse(scene.characters),
-        objects: JSON.parse(scene.objects),
-        emotions: JSON.parse(scene.emotions),
+        duration: scene.duration,
+        audioElements: scene.audio_elements ? JSON.parse(scene.audio_elements) : [],
         imageUrl: scene.image_url
       }))
     }

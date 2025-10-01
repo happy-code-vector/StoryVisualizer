@@ -6,17 +6,16 @@ import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Separator } from "./ui/separator"
-import { Eye, MapPin, Clock, Palette, Users, Zap } from "lucide-react"
+import { Eye, MapPin, Clock, Users, Volume2, Play } from "lucide-react"
 
 interface Scene {
   id: number
   title: string
   description: string
   characters: string[]
-  setting: string
-  mood: string
+  duration: number
+  audioElements: string[]
   imageUrl?: string
-  analysis: any
 }
 
 interface SceneCardProps {
@@ -38,9 +37,8 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
               <img
                 src={scene.imageUrl || "/placeholder.svg"}
                 alt={scene.title}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
-                  imageLoaded ? "opacity-100" : "opacity-0"
-                }`}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"
+                  }`}
                 onLoad={() => setImageLoaded(true)}
               />
               {!imageLoaded && (
@@ -86,44 +84,25 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
                           <div>
                             <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
                               <MapPin className="w-5 h-5" />
-                              Setting & Atmosphere
+                              Scene Description
                             </h4>
                             <p className="text-muted-foreground leading-relaxed text-base">
                               {scene.description}
                             </p>
                           </div>
-
-                          {scene.analysis?.atmosphere && (
-                            <div>
-                              <h4 className="font-semibold mb-2 text-lg">Full Description</h4>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                {scene.analysis.atmosphere}
-                              </p>
-                            </div>
-                          )}
                         </div>
 
                         <div className="space-y-4">
                           <div>
                             <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
-                              <Palette className="w-5 h-5" />
+                              <Play className="w-5 h-5" />
                               Scene Details
                             </h4>
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-base">{scene.setting}</span>
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-base">Duration: {scene.duration}s</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Palette className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-base">{scene.mood}</span>
-                              </div>
-                              {scene.analysis?.timeOfDay && scene.analysis.timeOfDay !== "unspecified time" && (
-                                <div className="flex items-center gap-2">
-                                  <Clock className="w-4 h-4 text-muted-foreground" />
-                                  <span className="text-base">{scene.analysis.timeOfDay}</span>
-                                </div>
-                              )}
                             </div>
                           </div>
 
@@ -143,16 +122,16 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
                             </div>
                           )}
 
-                          {scene.analysis?.keyActions && scene.analysis.keyActions.length > 0 && (
+                          {scene.audioElements && scene.audioElements.length > 0 && (
                             <div>
                               <h4 className="font-semibold mb-2 flex items-center gap-2 text-lg">
-                                <Zap className="w-5 h-5" />
-                                Key Actions
+                                <Volume2 className="w-5 h-5" />
+                                Audio Elements
                               </h4>
                               <div className="flex flex-wrap gap-2">
-                                {scene.analysis.keyActions.map((action: string, i: number) => (
+                                {scene.audioElements.map((audio: string, i: number) => (
                                   <Badge key={i} variant="outline" className="text-base px-2 py-1">
-                                    {action}
+                                    {audio}
                                   </Badge>
                                 ))}
                               </div>
@@ -180,17 +159,13 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="flex items-center gap-1 text-xs px-2 py-0.5">
-                    <MapPin className="w-2.5 h-2.5" />
-                    {scene.setting}
+                    <Clock className="w-2.5 h-2.5" />
+                    {scene.duration}s
                   </Badge>
-                  <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5">
-                    <Palette className="w-2.5 h-2.5" />
-                    {scene.mood}
-                  </Badge>
-                  {scene.analysis?.timeOfDay && scene.analysis.timeOfDay !== "unspecified time" && (
+                  {scene.audioElements && scene.audioElements.length > 0 && (
                     <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5">
-                      <Clock className="w-2.5 h-2.5" />
-                      {scene.analysis.timeOfDay}
+                      <Volume2 className="w-2.5 h-2.5" />
+                      {scene.audioElements.length} audio
                     </Badge>
                   )}
                 </div>
@@ -205,21 +180,21 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
                   </div>
                 )}
 
-                {scene.analysis?.keyActions && scene.analysis.keyActions.length > 0 && (
+                {scene.audioElements && scene.audioElements.length > 0 && (
                   <div>
                     <span className="text-xs font-medium flex items-center gap-1 mb-1">
-                      <Zap className="w-2.5 h-2.5" />
-                      Key Actions:
+                      <Volume2 className="w-2.5 h-2.5" />
+                      Audio Elements:
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {scene.analysis.keyActions.slice(0, 3).map((action: string, i: number) => (
+                      {scene.audioElements.slice(0, 3).map((audio: string, i: number) => (
                         <Badge key={i} variant="outline" className="text-xs px-1.5 py-0.5">
-                          {action}
+                          {audio}
                         </Badge>
                       ))}
-                      {scene.analysis.keyActions.length > 3 && (
+                      {scene.audioElements.length > 3 && (
                         <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                          +{scene.analysis.keyActions.length - 3}
+                          +{scene.audioElements.length - 3}
                         </Badge>
                       )}
                     </div>

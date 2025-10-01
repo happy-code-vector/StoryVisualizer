@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server'
 import { getModelByName } from '@/lib/supabase-service'
 
 async function generateSceneImage(scene: {
-  setting: string
-  timeOfDay: string
-  mood: string
   description: string
   characterImages?: string[]
 }, modelName: string = 'flux-dev'): Promise<string> {
@@ -20,7 +17,7 @@ async function generateSceneImage(scene: {
   const modelLink = model?.link || 'https://fal.run/fal-ai/flux/dev'
 
   try {
-    const prompt = `${scene.description}, ${scene.setting}, ${scene.timeOfDay}, ${scene.mood}, detailed environment, high quality, ultra realistic style`
+    const prompt = `${scene.description}, detailed environment, high quality, ultra realistic style`
     
     if (scene.characterImages && scene.characterImages.length > 0) {
       
