@@ -318,8 +318,8 @@ export default function AdminDashboard() {
     }
   }
 
-  // Filter out root users from the display
-  const filteredUsers = users.filter(user => user.role !== 'root')
+  // Filter out root users and current user from the display
+  const filteredUsers = users.filter(u => u.role !== 'root' && u.id !== user?.id)
   
   // Check if current user is root (can change roles)
   const isRootUser = user?.role === 'root'

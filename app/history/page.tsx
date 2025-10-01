@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft, Eye, Trash2 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface Story {
   id: number
@@ -24,6 +25,10 @@ export default function HistoryPage() {
   const [stories, setStories] = useState<Story[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const { user } = useAuth()
+  
+  // Check if user has admin privileges (root or admin)
+  const hasAdminPrivileges = user && (user.role === 'root' || user.role === 'admin')
 
   useEffect(() => {
     fetchStories()
@@ -56,36 +61,68 @@ export default function HistoryPage() {
   }
 
   const deleteStory = async (id: number) => {
+    if (!hasAdminPrivileges) {
+      alert('You do not have permission to delete stories.')
+      return
+    }
+
     try {
+      // Get auth token from cookies
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('authToken='))
+        ?.split('=')[1]
+
       const response = await fetch(`/api/stories/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
       
       if (response.ok) {
         // Remove the story from the local state
         setStories(stories.filter(story => story.id !== id))
       } else {
-        console.error('Failed to delete story')
+        const error = await response.json()
+        alert(`Failed to delete story: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error deleting story:', error)
+      alert('Error deleting story')
     }
   }
 
   const deleteAllStories = async () => {
+    if (!hasAdminPrivileges) {
+      alert('You do not have permission to delete stories.')
+      return
+    }
+
     try {
+      // Get auth token from cookies
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('authToken='))
+        ?.split('=')[1]
+
       const response = await fetch('/api/stories/delete-all', {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
       
       if (response.ok) {
         // Clear the local state
         setStories([])
       } else {
-        console.error('Failed to delete all stories')
+        const error = await response.json()
+        alert(`Failed to delete all stories: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error deleting all stories:', error)
+      alert('Error deleting all stories')
     }
   }
 
@@ -120,7 +157,7 @@ export default function HistoryPage() {
               Analysis History
             </h1>
           </div>
-          {stories.length > 0 && (
+          {stories.length > 0 && hasAdminPrivileges && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
@@ -226,28 +263,30 @@ export default function HistoryPage() {
                       <Button size="sm" onClick={() => viewStory(story.id)}>
                         View Analysis
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the story analysis
-                              "{story.title || "Untitled Story"}" and remove all associated data.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteStory(story.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {hasAdminPrivileges && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the story analysis
+                                "{story.title || "Untitled Story"}" and remove all associated data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteStory(story.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
                 </CardContent>
