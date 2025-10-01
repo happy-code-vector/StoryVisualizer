@@ -67,7 +67,7 @@ Return ONLY a valid JSON object with this exact structure:
       "name": "string",
       "mentions": number,
       "description": "string",
-      "visualAttributes": ["string"],
+      "attributes": ["string"],
       "relationships": ["string"],
       "audioCues": ["string"]
     }
@@ -86,7 +86,7 @@ Return ONLY a valid JSON object with this exact structure:
 
 For each field:
 - **characters.description**: A vivid, immersive paragraph emphasizing physical visuals.
-- **characters.visualAttributes**: Combine visual elements and traits for video portrayal.
+- **characters.attributes**: Visual elements and personality traits.
 - **characters.relationships**: Describe key connections.
 - **characters.audioCues**: Specify voice or sound motifs.
 - **scenes.description**: Expand into a rich, sequential script: Open with establishing shot and atmosphere; detail character appearances/actions/dialogues; describe changes in situations/emotions/dynamics; weave in camera angles/movements, visual style, audio, and how elements evolve for tension/drama/wonder; conclude with the transition to the next scene (around 100 words).
