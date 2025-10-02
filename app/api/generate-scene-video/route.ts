@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as fal from '@fal-ai/client'
 
-// Configure FAL client
-fal.config({
-  credentials: process.env.FAL_KEY,
-})
-
 interface VideoGenerationRequest {
   imageUrl: string
   scene: {
@@ -19,6 +14,18 @@ interface VideoGenerationRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Configure FAL client
+    if (process.env.FAL_KEY) {
+      fal.config({
+        credentials: process.env.FAL_KEY,
+      })
+    } else {
+      return NextResponse.json(
+        { error: 'FAL_KEY environment variable is not configured' },
+        { status: 500 }
+      )
+    }
+
     const body: VideoGenerationRequest = await request.json()
     const { imageUrl, scene, modelName } = body
 
