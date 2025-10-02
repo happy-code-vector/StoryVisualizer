@@ -1,20 +1,92 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import Link from "next/link"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { 
   BookOpen, 
   ImageIcon, 
   Sparkles, 
   Users, 
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  Play,
+  Calendar,
+  Eye,
+  Video
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
+interface RecentStory {
+  id: number
+  title: string
+  story: string
+  analysis: {
+    characters: Array<{ name: string }>
+    scenes: Array<{ 
+      id: number
+      title: string
+      imageUrl?: string
+      videoUrl?: string
+    }>
+  }
+  models: {
+    characterModel: string | null
+    sceneModel: string | null
+    videoModel: string | null
+  }
+  createdAt: string
+}
+
 export default function HomePage() {
   const { isAuthenticated, user } = useAuth()
+  const [recentStories, setRecentStories] = useState<RecentStory[]>([])
+  const [storiesLoading, setStoriesLoading] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const fetchRecentStories = async () => {
+      setStoriesLoading(true)
+      try {
+        const response = await fetch('/api/stories/recent?limit=3')
+        const data = await response.json()
+        setRecentStories(data.stories || [])
+      } catch (error) {
+        console.error('Error fetching recent stories:', error)
+      } finally {
+        setStoriesLoading(false)
+      }
+    }
+
+    fetchRecentStories()
+  }, [])
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getFirstMedia = (scenes: RecentStory['analysis']['scenes']) => {
+    // First try to find a scene with a video
+    const sceneWithVideo = scenes.find(scene => scene.videoUrl)
+    if (sceneWithVideo) {
+      return { type: 'video', url: sceneWithVideo.videoUrl }
+    }
+    
+    // Otherwise, find the first scene with an image
+    const sceneWithImage = scenes.find(scene => scene.imageUrl)
+    if (sceneWithImage) {
+      return { type: 'image', url: sceneWithImage.imageUrl }
+    }
+    
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-background pt-16">{/* Add padding-top to account for fixed navigation */}
@@ -87,6 +159,140 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Recent Stories Section */}
+      {recentStories.length > 0 && (
+        <section className="py-16 px-4">
+          <div className="container max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-12">
+              <h2 className="text-3xl font-bold">
+                Recent Stories
+              </h2>
+              {isAuthenticated && (
+                <Button variant="outline" onClick={() => router.push('/gallery')}>
+                  View All Stories
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            
+            {storiesLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-6">
+                {recentStories.map((story) => {
+                  const media = getFirstMedia(story.analysis.scenes)
+                  const hasVideo = story.analysis.scenes.some(scene => scene.videoUrl)
+                  
+                  return (
+                    <Card 
+                      key={story.id} 
+                      className="border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/70 transition-all duration-300 cursor-pointer group"
+                      onClick={() => isAuthenticated ? router.push(`/story/${story.id}`) : router.push('/login')}
+                    >
+                      <div className="relative aspect-video bg-muted/20 rounded-t-lg overflow-hidden">
+                        {media ? (
+                          <>
+                            {media.type === 'video' ? (
+                              <div className="relative w-full h-full">
+                                <video
+                                  src={media.url}
+                                  className="w-full h-full object-cover"
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                />
+                                <div className="absolute top-2 right-2">
+                                  <Badge variant="secondary" className="bg-black/50 text-white">
+                                    <Video className="w-3 h-3 mr-1" />
+                                    Video
+                                  </Badge>
+                                </div>
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                  <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="relative w-full h-full">
+                                <img
+                                  src={media.url}
+                                  alt={story.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-2 right-2">
+                                  <Badge variant="secondary" className="bg-black/50 text-white">
+                                    <ImageIcon className="w-3 h-3 mr-1" />
+                                    Image
+                                  </Badge>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                            <BookOpen className="w-12 h-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        
+                        {/* Video count badge */}
+                        {hasVideo && (
+                          <div className="absolute bottom-2 left-2">
+                            <Badge className="bg-accent text-accent-foreground">
+                              <Video className="w-3 h-3 mr-1" />
+                              {story.analysis.scenes.filter(s => s.videoUrl).length} Videos
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg line-clamp-1">{story.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {story.story}
+                        </p>
+                      </CardHeader>
+                      
+                      <CardContent className="pt-0">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {story.analysis.characters.length}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <BookOpen className="w-3 h-3" />
+                              {story.analysis.scenes.length}
+                            </span>
+                          </div>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(story.createdAt)}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">
+                            {story.models.characterModel && (
+                              <span>Character: {story.models.characterModel}</span>
+                            )}
+                          </div>
+                          <Button size="sm" variant="ghost" className="text-xs h-auto p-1">
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Benefits Section */}
       <section className="py-16 px-4">

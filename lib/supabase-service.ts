@@ -33,6 +33,7 @@ interface SceneRecord {
   duration: number | null // Duration in seconds
   audio_elements: string | null // JSON string
   image_url: string | null
+  video_url: string | null
 }
 
 interface ModelRecord {
@@ -57,6 +58,7 @@ export async function saveStoryAnalysis(
   models?: {
     characterModel?: string;
     sceneModel?: string;
+    videoModel?: string;
   }
 ): Promise<number | null> {
   try {
@@ -69,7 +71,8 @@ export async function saveStoryAnalysis(
           story: story,
           analysis: JSON.stringify(analysis),
           character_model_name: models?.characterModel || null,
-          scene_model_name: models?.sceneModel || null
+          scene_model_name: models?.sceneModel || null,
+          video_model_name: models?.videoModel || null
         }
       ])
       .select()
@@ -114,7 +117,8 @@ export async function saveStoryAnalysis(
         characters: JSON.stringify(scene.characters || []),
         duration: typeof scene.duration === 'string' ? parseInt(scene.duration) : (scene.duration || null),
         audio_elements: JSON.stringify(scene.audioElements || []),
-        image_url: scene.imageUrl || null
+        image_url: scene.imageUrl || null,
+        video_url: scene.videoUrl || null
       }))
       
       const { error: sceneError } = await supabase
@@ -143,6 +147,7 @@ export async function getAllStories(): Promise<Array<{
   models: {
     characterModel: string | null
     sceneModel: string | null
+    videoModel: string | null
   }
   createdAt: string
 }> | null> {
@@ -206,7 +211,8 @@ export async function getAllStories(): Promise<Array<{
           characters: JSON.parse(scene.characters),
           duration: scene.duration,
           audioElements: scene.audio_elements ? JSON.parse(scene.audio_elements) : [],
-          imageUrl: scene.image_url
+          imageUrl: scene.image_url,
+          videoUrl: scene.video_url
         }))
       }
       
@@ -217,7 +223,8 @@ export async function getAllStories(): Promise<Array<{
         analysis: updatedAnalysis,
         models: {
           characterModel: story.character_model_name,
-          sceneModel: story.scene_model_name
+          sceneModel: story.scene_model_name,
+          videoModel: story.video_model_name
         },
         createdAt: story.created_at
       }
@@ -240,6 +247,7 @@ export async function getStoryById(id: number): Promise<{
   models: {
     characterModel: string | null
     sceneModel: string | null
+    videoModel: string | null
   }
   createdAt: string
 } | null> {
@@ -302,7 +310,8 @@ export async function getStoryById(id: number): Promise<{
         characters: JSON.parse(scene.characters),
         duration: scene.duration,
         audioElements: scene.audio_elements ? JSON.parse(scene.audio_elements) : [],
-        imageUrl: scene.image_url
+        imageUrl: scene.image_url,
+        videoUrl: scene.video_url
       }))
     }
     
@@ -313,7 +322,8 @@ export async function getStoryById(id: number): Promise<{
       analysis: updatedAnalysis,
       models: {
         characterModel: story.character_model_name,
-        sceneModel: story.scene_model_name
+        sceneModel: story.scene_model_name,
+        videoModel: story.video_model_name
       },
       createdAt: story.created_at
     }
@@ -403,6 +413,63 @@ export async function deleteAllStories(): Promise<boolean> {
   } catch (error) {
     console.error('Error deleting all stories:', error)
     return false
+  }
+}
+
+// Update scene video URL
+export async function updateSceneVideoUrl(
+  storyId: number, 
+  sceneId: number, 
+  videoUrl: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('scenes')
+      .update({ video_url: videoUrl })
+      .eq('story_id', storyId)
+      .eq('scene_id', sceneId)
+    
+    if (error) {
+      console.error('Error updating scene video URL:', error)
+      return false
+    }
+    
+    return true
+  } catch (error) {
+    console.error('Error updating scene video URL:', error)
+    return false
+  }
+}
+
+// Get all available models
+export async function getAvailableModels(): Promise<{
+  characterModels: ModelRecord[]
+  sceneModels: ModelRecord[]
+  videoModels: ModelRecord[]
+} | null> {
+  try {
+    const { data: models, error } = await supabase
+      .from('models')
+      .select('*')
+      .order('name', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching models:', error)
+      return null
+    }
+    
+    const characterModels = models.filter(m => m.type === 'character')
+    const sceneModels = models.filter(m => m.type === 'scene')
+    const videoModels = models.filter(m => m.type === 'video')
+    
+    return {
+      characterModels,
+      sceneModels,
+      videoModels
+    }
+  } catch (error) {
+    console.error('Error getting available models:', error)
+    return null
   }
 }
 

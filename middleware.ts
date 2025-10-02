@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const protectedRoutes = ['/admin', '/story', '/history', '/visualize']
+const protectedRoutes = ['/story', '/visualize', '/gallery']
+const adminRoutes = ['/admin', '/history'] // Admin/root only routes
 const authRoutes = ['/login', '/signup']
 const publicRoutes = ['/home'] // Public landing page
 
@@ -34,6 +35,27 @@ function isTokenValid(token: string | null): boolean {
   }
 }
 
+function getUserFromToken(token: string | null): { role: string; verified: boolean } | null {
+  if (!token || token.length === 0) return null;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
+  try {
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp && payload.exp < Date.now() / 1000) {
+      return null;
+    }
+
+    return {
+      role: payload.role || 'user',
+      verified: payload.verified || false
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const cookieHeader = request.headers.get('cookie') || ''
@@ -45,6 +67,8 @@ export async function middleware(request: NextRequest) {
 
   // Simple token validation (without crypto)
   const isAuthenticated = isTokenValid(token)
+  const user = getUserFromToken(token)
+  const isAdmin = user && user.verified && (user.role === 'root' || user.role === 'admin')
 
   // Protect all API routes except auth routes
   if (pathname.startsWith('/api/')) {
@@ -83,6 +107,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Check admin routes
+  if (adminRoutes.some(route => pathname.startsWith(route))) {
+    if (!isAuthenticated) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      if (pathname !== '/login') {
+        url.searchParams.set('returnTo', pathname)
+      }
+      return NextResponse.redirect(url)
+    }
+    
+    if (!isAdmin) {
+      // Redirect non-admin users away from admin routes
+      const url = request.nextUrl.clone()
+      url.pathname = '/story'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Check regular protected routes
   if (!isAuthenticated && protectedRoutes.some(route => pathname.startsWith(route))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -105,6 +149,7 @@ export const config = {
     '/signup',
     '/admin/:path*',
     '/story/:path*',
+    '/gallery/:path*',
     '/history/:path*',
     '/visualize/:path*',
     '/api/:path*'

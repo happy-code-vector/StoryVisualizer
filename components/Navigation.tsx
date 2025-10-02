@@ -8,14 +8,15 @@ import {
   Users, 
   ImageIcon, 
   History, 
-  Settings 
+  Settings,
+  Image
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 const navigationItems = [
   { name: "Home", href: "/home", icon: BookOpen },
   { name: "Story", href: "/story", icon: BookOpen },
-  { name: "History", href: "/history", icon: History },
+  { name: "Gallery", href: "/gallery", icon: Image },
 ]
 
 export function Navigation() {
@@ -63,7 +64,7 @@ export function Navigation() {
             {isAdmin && (
               <Link href="/admin">
                 <Button
-                  variant={pathname === "/admin" ? "secondary" : "ghost"}
+                  variant={pathname === "/admin" || pathname === "/history" ? "secondary" : "ghost"}
                   className="flex items-center gap-2"
                 >
                   <Settings className="w-4 h-4" />

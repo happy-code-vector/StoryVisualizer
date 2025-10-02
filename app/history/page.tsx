@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft, Eye, Trash2, Settings } from "lucide-react"
+import { History as HistoryIcon, BookOpen, Users, Calendar, ArrowLeft, Eye, Trash2, Settings, Shield, Database } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 interface Story {
@@ -28,6 +28,12 @@ interface Story {
 export default function HistoryPage() {
   const [stories, setStories] = useState<Story[]>([])
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalStories: 0,
+    totalCharacters: 0,
+    totalScenes: 0,
+    storiesWithVideos: 0
+  })
   const router = useRouter()
   const { user } = useAuth()
   
@@ -43,6 +49,20 @@ export default function HistoryPage() {
       const response = await fetch('/api/stories')
       const data = await response.json()
       setStories(data)
+      
+      // Calculate statistics
+      const totalCharacters = data.reduce((sum: number, story: Story) => sum + story.analysis.characters.length, 0)
+      const totalScenes = data.reduce((sum: number, story: Story) => sum + story.analysis.scenes.length, 0)
+      const storiesWithVideos = data.filter((story: Story) => 
+        story.analysis.scenes.some(scene => scene.videoUrl)
+      ).length
+      
+      setStats({
+        totalStories: data.length,
+        totalCharacters,
+        totalScenes,
+        storiesWithVideos
+      })
     } catch (error) {
       console.error('Error fetching stories:', error)
     } finally {
@@ -157,8 +177,8 @@ export default function HistoryPage() {
               Back
             </Button>
             <h1 className="text-3xl font-bold gradient-text flex items-center gap-2">
-              <HistoryIcon className="w-8 h-8 text-primary" />
-              Analysis History
+              <Shield className="w-8 h-8 text-primary" />
+              Story Management (Admin)
             </h1>
           </div>
           {stories.length > 0 && hasAdminPrivileges && (
@@ -188,16 +208,46 @@ export default function HistoryPage() {
           )}
         </div>
 
+        {/* Admin Statistics */}
+        {stories.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-4">
+                <div className="text-2xl font-bold text-primary">{stats.totalStories}</div>
+                <div className="text-sm text-muted-foreground">Total Stories</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-4">
+                <div className="text-2xl font-bold text-accent">{stats.totalCharacters}</div>
+                <div className="text-sm text-muted-foreground">Total Characters</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-4">
+                <div className="text-2xl font-bold text-primary">{stats.totalScenes}</div>
+                <div className="text-sm text-muted-foreground">Total Scenes</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-4">
+                <div className="text-2xl font-bold text-accent">{stats.storiesWithVideos}</div>
+                <div className="text-sm text-muted-foreground">Stories with Videos</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {stories.length === 0 ? (
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardContent className="pt-6 text-center py-12">
-              <HistoryIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Analysis History</h3>
+              <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Stories Found</h3>
               <p className="text-muted-foreground mb-4">
-                You haven't analyzed any stories yet. Go to the main page to get started!
+                No stories have been created yet. Users can create stories from the main application.
               </p>
-              <Button onClick={() => router.push('/')}>
-                Analyze a Story
+              <Button onClick={() => router.push('/gallery')}>
+                View Gallery
               </Button>
             </CardContent>
           </Card>

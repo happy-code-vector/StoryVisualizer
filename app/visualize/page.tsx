@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, Users, BookOpen, Download, History, ArrowLeft } from "lucide-react"
+import { Sparkles, Users, BookOpen, Download, ArrowLeft, Play, Video, Image } from "lucide-react"
 import CharacterCard from "@/components/CharacterCard"
 import SceneCard from "@/components/SceneCard"
 
@@ -27,6 +27,7 @@ interface Scene {
   duration: number
   audioElements: string[]
   imageUrl?: string
+  videoUrl?: string
 }
 
 interface ProcessingState {
@@ -44,6 +45,7 @@ interface StoryAnalysis {
   }
   characterModel?: string
   sceneModel?: string
+  videoModel?: string
 }
 
 export default function VisualizePage() {
@@ -56,6 +58,8 @@ export default function VisualizePage() {
     isProcessing: true,
   })
   const [isClient, setIsClient] = useState(false)
+  const [videoGenerationPrompts, setVideoGenerationPrompts] = useState<{[key: number]: boolean}>({})
+  const [generatingVideo, setGeneratingVideo] = useState<{[key: number]: boolean}>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -197,9 +201,78 @@ export default function VisualizePage() {
 
     setScenes(scenesWithImages)
 
-    setProcessing({ step: "Saving to database...", progress: 90, isProcessing: true })
+    // After generating all scene images, ask user about video generation
+    setProcessing({ step: "Images generated! Ready for video generation.", progress: 90, isProcessing: false })
+    
+    // Show video generation prompts for each scene
+    const prompts: {[key: number]: boolean} = {}
+    scenesWithImages.forEach(scene => {
+      prompts[scene.id] = true
+    })
+    setVideoGenerationPrompts(prompts)
+  }
 
+  const generateVideoForScene = async (scene: Scene) => {
+    if (!scene.imageUrl || !storyAnalysis?.videoModel) return
 
+    setGeneratingVideo(prev => ({ ...prev, [scene.id]: true }))
+    
+    try {
+      const response = await fetch('/api/generate-scene-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: scene.imageUrl,
+          scene: scene,
+          modelName: storyAnalysis.videoModel
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate video')
+      }
+
+      const { videoUrl } = await response.json()
+      
+      // Update the scene with video URL
+      setScenes(prev => prev.map(s => 
+        s.id === scene.id ? { ...s, videoUrl } : s
+      ))
+
+      // Update in database if story is already saved
+      try {
+        await fetch('/api/update-story-images', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sceneId: scene.id,
+            videoUrl: videoUrl
+          })
+        })
+      } catch (dbError) {
+        console.error('Error updating video URL in database:', dbError)
+      }
+
+    } catch (error) {
+      console.error(`Error generating video for scene ${scene.title}:`, error)
+      alert(`Failed to generate video for ${scene.title}: ${error}`)
+    } finally {
+      setGeneratingVideo(prev => ({ ...prev, [scene.id]: false }))
+      setVideoGenerationPrompts(prev => ({ ...prev, [scene.id]: false }))
+    }
+  }
+
+  const skipVideoGeneration = (sceneId: number) => {
+    setVideoGenerationPrompts(prev => ({ ...prev, [sceneId]: false }))
+  }
+
+  const saveStoryToDatabase = async () => {
+    setProcessing({ step: "Saving to database...", progress: 95, isProcessing: true })
 
     try {
       const response = await fetch('/api/save-story-analysis', {
@@ -211,12 +284,13 @@ export default function VisualizePage() {
           title: storyAnalysis?.title || "Untitled Story",
           story: storyAnalysis?.story || "",
           analysis: {
-            characters: charactersWithImages,
-            scenes: scenesWithImages
+            characters: characters,
+            scenes: scenes
           },
           models: {
             characterModel: storyAnalysis?.characterModel,
-            sceneModel: storyAnalysis?.sceneModel
+            sceneModel: storyAnalysis?.sceneModel,
+            videoModel: storyAnalysis?.videoModel
           }
         }),
       })
@@ -227,11 +301,11 @@ export default function VisualizePage() {
       }
 
       const result = await response.json()
+      setProcessing({ step: "Saved successfully!", progress: 100, isProcessing: false })
     } catch (error) {
-      console.error('[VisualizePage] Error saving story analysis to database:', error)
+      console.error('Error saving story analysis to database:', error)
+      setProcessing({ step: "Error saving to database", progress: 100, isProcessing: false })
     }
-
-    setProcessing({ step: "Complete!", progress: 100, isProcessing: false })
   }
 
   const exportResults = () => {
@@ -296,11 +370,11 @@ export default function VisualizePage() {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={() => router.push('/history')}
+              onClick={() => router.push('/gallery')}
               className="flex items-center gap-2"
             >
-              <History className="w-4 h-4" />
-              History
+              <Image className="w-4 h-4" />
+              Gallery
             </Button>
             <Button
               variant="outline"
@@ -310,6 +384,14 @@ export default function VisualizePage() {
             >
               <Download className="w-4 h-4" />
               Export
+            </Button>
+            <Button
+              onClick={saveStoryToDatabase}
+              className="flex items-center gap-2"
+              disabled={processing.isProcessing}
+            >
+              <Download className="w-4 h-4" />
+              Save to Database
             </Button>
           </div>
         </div>
@@ -327,6 +409,60 @@ export default function VisualizePage() {
                 <p className="text-sm text-muted-foreground">
                   AI is generating visualizations for your story characters and scenes...
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Video Generation Prompts */}
+        {Object.keys(videoGenerationPrompts).some(key => videoGenerationPrompts[parseInt(key)]) && (
+          <Card className="mb-8 border-accent/20 bg-accent/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-accent" />
+                Video Generation Ready
+              </CardTitle>
+              <CardDescription>
+                Would you like to generate videos for your scenes? This will create animated clips from the scene images.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {scenes.filter(scene => videoGenerationPrompts[scene.id]).map(scene => (
+                  <div key={scene.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{scene.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{scene.description.substring(0, 100)}...</p>
+                      <p className="text-xs text-muted-foreground mt-1">Duration: {scene.duration || 5} seconds</p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      {generatingVideo[scene.id] ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
+                          <span className="text-sm">Generating...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => skipVideoGeneration(scene.id)}
+                          >
+                            Skip
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => generateVideoForScene(scene)}
+                            className="flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3" />
+                            Generate Video
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
