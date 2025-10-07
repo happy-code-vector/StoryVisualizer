@@ -13,8 +13,7 @@ interface Character {
   imageUrl?: string
   mentions: number
   attributes: string[]
-  relationships: string[]
-  audioCues: string[]
+  briefIntro: string
 }
 
 interface CharacterCardProps {
@@ -90,34 +89,15 @@ export default function CharacterCard({ character, index }: CharacterCardProps) 
                         </div>
                       </div>
                     )}
-                    {character.relationships?.length > 0 && (
+                    {character.briefIntro && (
                       <div>
                         <h4 className="font-semibold mb-2 text-lg flex items-center gap-2">
                           <Heart className="w-4 h-4" />
-                          Relationships
+                          Introduction
                         </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {character.relationships.map((rel, i) => (
-                            <Badge key={i} variant="secondary" className="text-base px-2 py-1">
-                              {rel}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {character.audioCues?.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-2 text-lg flex items-center gap-2">
-                          <Volume2 className="w-4 h-4" />
-                          Audio Cues
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {character.audioCues.map((cue, i) => (
-                            <Badge key={i} variant="outline" className="text-base px-2 py-1">
-                              {cue}
-                            </Badge>
-                          ))}
-                        </div>
+                        <p className="text-base text-muted-foreground">
+                          {character.briefIntro}
+                        </p>
                       </div>
                     )}
                   </div>

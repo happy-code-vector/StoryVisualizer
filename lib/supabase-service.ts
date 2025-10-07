@@ -5,7 +5,6 @@ interface StoryRecord {
   id: number
   title: string
   story: string
-  analysis: string // JSON string
   character_model_name: string | null
   scene_model_name: string | null
   created_at: string
@@ -18,8 +17,7 @@ interface CharacterRecord {
   mentions: number
   description: string
   attributes: string // JSON string
-  relationships: string // JSON string
-  audio_cues: string | null // JSON string
+  brief_intro: string
   image_url: string | null
 }
 
@@ -30,10 +28,7 @@ interface SceneRecord {
   title: string
   description: string
   characters: string // JSON string
-  duration: number | null // Duration in seconds
-  audio_elements: string | null // JSON string
   image_url: string | null
-  video_url: string | null
 }
 
 interface ModelRecord {
@@ -58,21 +53,18 @@ export async function saveStoryAnalysis(
   models?: {
     characterModel?: string;
     sceneModel?: string;
-    videoModel?: string;
   }
 ): Promise<number | null> {
   try {
-    // Insert the story with model information
+    // Insert the story with model information (no analysis column)
     const { data: storyData, error: storyError } = await supabase
       .from('stories')
       .insert([
         {
           title: title,
           story: story,
-          analysis: JSON.stringify(analysis),
           character_model_name: models?.characterModel || null,
-          scene_model_name: models?.sceneModel || null,
-          video_model_name: models?.videoModel || null
+          scene_model_name: models?.sceneModel || null
         }
       ])
       .select()
@@ -92,8 +84,7 @@ export async function saveStoryAnalysis(
         mentions: character.mentions,
         description: character.description,
         attributes: JSON.stringify(character.attributes || []),
-        relationships: JSON.stringify(character.relationships || []),
-        audio_cues: JSON.stringify(character.audioCues || []),
+        brief_intro: character.briefIntro || '',
         image_url: character.imageUrl || null
       }))
       
@@ -115,10 +106,7 @@ export async function saveStoryAnalysis(
         title: scene.title,
         description: scene.description,
         characters: JSON.stringify(scene.characters || []),
-        duration: typeof scene.duration === 'string' ? parseInt(scene.duration) : (scene.duration || null),
-        audio_elements: JSON.stringify(scene.audioElements || []),
         image_url: scene.imageUrl || null,
-        video_url: scene.videoUrl || null
       }))
       
       const { error: sceneError } = await supabase
@@ -288,19 +276,14 @@ export async function getStoryById(id: number): Promise<{
       return null
     }
     
-    // Parse the analysis JSON
-    const analysis = JSON.parse(story.analysis)
-    
-    // Merge image URLs into the analysis
+    // Reconstruct analysis from character and scene data
     const updatedAnalysis = {
-      ...analysis,
       characters: characters.map(char => ({
         name: char.name,
         mentions: char.mentions,
         description: char.description,
         attributes: JSON.parse(char.attributes),
-        relationships: JSON.parse(char.relationships),
-        audioCues: char.audio_cues ? JSON.parse(char.audio_cues) : [],
+        briefIntro: char.brief_intro,
         imageUrl: char.image_url
       })),
       scenes: scenes.map(scene => ({
@@ -308,10 +291,7 @@ export async function getStoryById(id: number): Promise<{
         title: scene.title,
         description: scene.description,
         characters: JSON.parse(scene.characters),
-        duration: scene.duration,
-        audioElements: scene.audio_elements ? JSON.parse(scene.audio_elements) : [],
         imageUrl: scene.image_url,
-        videoUrl: scene.video_url
       }))
     }
     

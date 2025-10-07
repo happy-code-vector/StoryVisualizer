@@ -7,20 +7,14 @@ export interface Character {
   mentions: number
   description: string
   attributes: string[]
-  relationships: string[]
+  briefIntro: string
 }
 
 export interface Scene {
   id: number
   title: string
   description: string
-  setting: string
-  timeOfDay: string
-  mood: string
-  keyActions: string[]
   characters: string[]
-  objects: string[]
-  emotions: string[]
 }
 
 export interface StoryAnalysis {

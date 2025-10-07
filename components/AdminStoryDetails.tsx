@@ -26,8 +26,7 @@ interface Character {
   imageUrl?: string
   mentions: number
   attributes: string[]
-  relationships: string[]
-  audioCues?: string[]
+  briefIntro: string
 }
 
 interface Scene {
@@ -118,8 +117,7 @@ export default function AdminStoryDetails({ story, isOpen, onClose, onDelete }: 
         description: c.description,
         mentions: c.mentions,
         attributes: c.attributes,
-        relationships: c.relationships,
-        audioCues: c.audioCues
+        briefIntro: c.briefIntro
       })),
       scenes: processedScenes.map((s) => ({
         id: s.id,

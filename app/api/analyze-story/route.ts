@@ -12,8 +12,7 @@ interface Character {
   mentions: number
   description: string
   attributes: string[]
-  relationships: string[]
-  audioCues: string[]
+  briefIntro: string
 }
 
 interface Scene {
@@ -21,8 +20,6 @@ interface Scene {
   title: string
   description: string
   characters: string[]
-  duration: number | string // Accept both number and string, convert as needed
-  audioElements: string[]
 }
 
 interface StoryAnalysis {
@@ -51,11 +48,11 @@ export async function POST(request: Request) {
     const preprocessedStory = preprocessText(story)
 
     // Create the prompt for OpenAI
-    const prompt = `You are an expert literary analyst AI tasked with analyzing a story to extract detailed information about characters and scenes, optimized for generating stunning, cohesive video clips that merge into a single video. Your goal is to process the story and produce a JSON response with rich, vivid descriptions that support dynamic video production, ensuring narrative flow, visual continuity, and emotional depth.
+    const prompt = `You are an expert literary analyst AI tasked with analyzing a story to extract detailed information about characters and scenes, optimized for generating high-quality static images. Your goal is to process the story and produce a JSON response with perfect image generation prompts that can be directly fed into AI image models.
 
-Analyze the story thoroughly: Break down the narrative into a sufficient number of detailed scenes to fully capture the content (aim for enough number of scenes as needed, splitting based on key events, location changes, time shifts, character developments, or plot progressions to ensure comprehensive coverage without rushing through important moments). Provide comprehensive, cinematic details for each category. For characters, craft the 'description' field as a rich, vivid narrative focusing on physical appearance (face shape, expressions, age, build, skin tone, hair, eyes), clothing, mannerisms, emotional states, and how they move/interact to evoke stunning visuals. For scenes, craft the 'description' field as a detailed, step-by-step script-like narrative that flows sequentially: describe opening visuals, character entrances/actions/dialogues, situation changes, emotional shifts, interactions, evolving dynamics, integrated camera angles/movements/visual style, audio elements, and the transition to the next scene, using immersive, sensory language to inspire video generation models.
+Analyze the story thoroughly: Break down the narrative into detailed scenes that capture key moments, locations, character interactions, and plot points. Focus on creating descriptions that work perfectly as image generation prompts.
 
-Ensure scenes connect seamlessly with recurring motifs and smooth transitions for continuous video merging. Use cinematic, vivid prose throughout to make outputs directly usable for creating engaging, fluid video clips.
+For characters, craft the 'description' field as a perfect image generation prompt focusing on physical appearance, clothing, pose, and visual characteristics. For scenes, craft the 'description' field as a detailed image prompt describing a single moment or frame - include setting, lighting, composition, character positions, objects, mood, and visual style.
 
 IMPORTANT: Return ONLY a valid JSON object without any markdown formatting, code blocks, or additional text. Do not wrap the JSON in \`\`\`json\`\`\` blocks. Return the raw JSON object directly with this exact structure:
 {
@@ -65,8 +62,7 @@ IMPORTANT: Return ONLY a valid JSON object without any markdown formatting, code
       "mentions": number,
       "description": "string",
       "attributes": ["string"],
-      "relationships": ["string"],
-      "audioCues": ["string"]
+      "briefIntro": "string"
     }
   ],
   "scenes": [
@@ -74,23 +70,18 @@ IMPORTANT: Return ONLY a valid JSON object without any markdown formatting, code
       "id": number,
       "title": "string",
       "description": "string",
-      "characters": ["string"],
-      "duration": "string",
-      "audioElements": ["string"]
+      "characters": ["string"]
     }
   ]
 }
 
 For each field:
-- **characters.description**: A vivid, immersive paragraph emphasizing physical visuals.
-- **characters.attributes**: Visual elements and personality traits.
-- **characters.relationships**: Describe key connections.
-- **characters.audioCues**: Specify voice or sound motifs.
-- **scenes.description**: Expand into a rich, sequential script: Open with establishing shot and atmosphere; detail character appearances/actions/dialogues; describe changes in situations/emotions/dynamics; weave in camera angles/movements, visual style, audio, and how elements evolve for tension/drama/wonder; conclude with the transition to the next scene (80~100 words).
-- **scenes.duration**: Estimate the scene’s duration in the video (e.g., "30") Should not exceed 20 seconds and represented in number, calculated in seconds.
-- **scenes.audioElements**: List sound effects, music, or dialogue cues.
+- **characters.description**: A perfect image generation prompt describing the character's physical appearance, clothing, pose, and visual characteristics (50-80 words).
+- **characters.attributes**: Visual elements, personality traits, and key characteristics.
+- **characters.briefIntro**: A brief 1-2 sentence introduction of who the character is and their role.
+- **scenes.description**: A perfect image generation prompt describing a single moment/frame including setting, lighting, character positions, objects, composition, and visual mood (60-100 words).
 
-Ensure all enriched descriptions use sensory, dynamic language to directly feed video generation models for stunning, fluid clips with character evolutions and situational changes.
+Ensure all descriptions use clear, visual language optimized for AI image generation models. Focus on static visual elements rather than actions or movements.
 
 Story to analyze:
 ${preprocessedStory}`

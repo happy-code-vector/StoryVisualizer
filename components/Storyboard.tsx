@@ -14,8 +14,7 @@ interface Character {
   imageUrl?: string
   mentions: number
   attributes: string[]
-  relationships: string[]
-  audioCues?: string[]
+  briefIntro: string
 }
 
 interface Scene {
@@ -23,8 +22,6 @@ interface Scene {
   title: string
   description: string
   characters: string[]
-  duration?: number
-  audioElements?: string[]
   imageUrl?: string
   videoUrl?: string
 }

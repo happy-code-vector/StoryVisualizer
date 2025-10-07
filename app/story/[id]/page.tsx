@@ -10,8 +10,7 @@ interface Character {
   imageUrl?: string
   mentions: number
   attributes: string[]
-  relationships: string[]
-  audioCues?: string[]
+  briefIntro: string
 }
 
 interface Scene {
