@@ -12,13 +12,21 @@ interface Story {
   title: string
   story: string
   analysis: {
-    characters: Array<{ name: string; mentions: number }>
+    characters: Array<{ 
+      name: string
+      mentions: number
+      description: string
+      attributes: string[]
+      briefIntro: string
+      imageUrl?: string
+    }>
     scenes: Array<{ 
       id: number
       title: string
+      description: string
+      characters: string[]
       imageUrl?: string
       videoUrl?: string
-      duration?: number
     }>
   }
   models: {

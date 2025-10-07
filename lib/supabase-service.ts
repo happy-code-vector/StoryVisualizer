@@ -68,14 +68,14 @@ export async function saveStoryAnalysis(
         }
       ])
       .select()
-    
+
     if (storyError) {
       console.error('Error inserting story:', storyError)
       return null
     }
-    
+
     const storyId = storyData[0].id
-    
+
     // Insert characters with image URLs
     if (analysis.characters && Array.isArray(analysis.characters)) {
       const characters = analysis.characters.map((character: any) => ({
@@ -87,17 +87,17 @@ export async function saveStoryAnalysis(
         brief_intro: character.briefIntro || '',
         image_url: character.imageUrl || null
       }))
-      
+
       const { error: charError } = await supabase
         .from('characters')
         .insert(characters)
-      
+
       if (charError) {
         console.error('Error inserting characters:', charError)
         return null
       }
     }
-    
+
     // Insert scenes with image URLs
     if (analysis.scenes && Array.isArray(analysis.scenes)) {
       const scenes = analysis.scenes.map((scene: any) => ({
@@ -108,17 +108,17 @@ export async function saveStoryAnalysis(
         characters: JSON.stringify(scene.characters || []),
         image_url: scene.imageUrl || null,
       }))
-      
+
       const { error: sceneError } = await supabase
         .from('scenes')
         .insert(scenes)
-      
+
       if (sceneError) {
         console.error('Error inserting scenes:', sceneError)
         return null
       }
     }
-    
+
     return storyId
   } catch (error) {
     console.error('Error saving story analysis:', error)
@@ -145,12 +145,12 @@ export async function getAllStories(): Promise<Array<{
       .from('stories')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching stories:', error)
       return null
     }
-    
+
     // For each story, get its characters and scenes
     const storiesWithDetails = await Promise.all(stories.map(async (story) => {
       // Get characters for this story
@@ -159,37 +159,32 @@ export async function getAllStories(): Promise<Array<{
         .select('*')
         .eq('story_id', story.id)
         .order('id', { ascending: true })
-      
+
       if (charError) {
         console.error('Error fetching characters:', charError)
         return null
       }
-      
+
       // Get scenes for this story
       const { data: scenes, error: sceneError } = await supabase
         .from('scenes')
         .select('*')
         .eq('story_id', story.id)
         .order('scene_id', { ascending: true })
-      
+
       if (sceneError) {
         console.error('Error fetching scenes:', sceneError)
         return null
       }
-      
-      // Parse the analysis JSON
-      const analysis = JSON.parse(story.analysis)
-      
-      // Merge image URLs into the analysis
+
+      // Reconstruct analysis from character and scene data
       const updatedAnalysis = {
-        ...analysis,
         characters: characters.map(char => ({
           name: char.name,
           mentions: char.mentions,
           description: char.description,
           attributes: JSON.parse(char.attributes),
-          relationships: JSON.parse(char.relationships),
-          audioCues: char.audio_cues ? JSON.parse(char.audio_cues) : [],
+          briefIntro: char.brief_intro,
           imageUrl: char.image_url
         })),
         scenes: scenes.map(scene => ({
@@ -197,13 +192,11 @@ export async function getAllStories(): Promise<Array<{
           title: scene.title,
           description: scene.description,
           characters: JSON.parse(scene.characters),
-          duration: scene.duration,
-          audioElements: scene.audio_elements ? JSON.parse(scene.audio_elements) : [],
           imageUrl: scene.image_url,
           videoUrl: scene.video_url
         }))
       }
-      
+
       return {
         id: story.id,
         title: story.title,
@@ -217,7 +210,7 @@ export async function getAllStories(): Promise<Array<{
         createdAt: story.created_at
       }
     }))
-    
+
     // Filter out any null values (in case of errors)
     return storiesWithDetails.filter(Boolean) as any
   } catch (error) {
@@ -246,36 +239,36 @@ export async function getStoryById(id: number): Promise<{
       .select('*')
       .eq('id', id)
       .single()
-    
+
     if (error || !story) {
       console.error('Error fetching story:', error)
       return null
     }
-    
+
     // Get characters for this story
     const { data: characters, error: charError } = await supabase
       .from('characters')
       .select('*')
       .eq('story_id', id)
       .order('id', { ascending: true })
-    
+
     if (charError) {
       console.error('Error fetching characters:', charError)
       return null
     }
-    
+
     // Get scenes for this story
     const { data: scenes, error: sceneError } = await supabase
       .from('scenes')
       .select('*')
       .eq('story_id', id)
       .order('scene_id', { ascending: true })
-    
+
     if (sceneError) {
       console.error('Error fetching scenes:', sceneError)
       return null
     }
-    
+
     // Reconstruct analysis from character and scene data
     const updatedAnalysis = {
       characters: characters.map(char => ({
@@ -294,7 +287,7 @@ export async function getStoryById(id: number): Promise<{
         imageUrl: scene.image_url,
       }))
     }
-    
+
     return {
       id: story.id,
       title: story.title,
@@ -321,34 +314,34 @@ export async function deleteStoryById(id: number): Promise<boolean> {
       .from('characters')
       .delete()
       .eq('story_id', id)
-    
+
     if (charError) {
       console.error('Error deleting characters:', charError)
       return false
     }
-    
+
     // Delete related scenes
     const { error: sceneError } = await supabase
       .from('scenes')
       .delete()
       .eq('story_id', id)
-    
+
     if (sceneError) {
       console.error('Error deleting scenes:', sceneError)
       return false
     }
-    
+
     // Delete the story
     const { error: storyError } = await supabase
       .from('stories')
       .delete()
       .eq('id', id)
-    
+
     if (storyError) {
       console.error('Error deleting story:', storyError)
       return false
     }
-    
+
     return true
   } catch (error) {
     console.error('Error deleting story:', error)
@@ -363,32 +356,32 @@ export async function deleteAllStories(): Promise<boolean> {
     const { error: charError } = await supabase
       .from('characters')
       .delete()
-    
+
     if (charError) {
       console.error('Error deleting characters:', charError)
       return false
     }
-    
+
     // Delete all scenes
     const { error: sceneError } = await supabase
       .from('scenes')
       .delete()
-    
+
     if (sceneError) {
       console.error('Error deleting scenes:', sceneError)
       return false
     }
-    
+
     // Delete all stories
     const { error: storyError } = await supabase
       .from('stories')
       .delete()
-    
+
     if (storyError) {
       console.error('Error deleting stories:', storyError)
       return false
     }
-    
+
     return true
   } catch (error) {
     console.error('Error deleting all stories:', error)
@@ -398,8 +391,8 @@ export async function deleteAllStories(): Promise<boolean> {
 
 // Update scene video URL
 export async function updateSceneVideoUrl(
-  storyId: number, 
-  sceneId: number, 
+  storyId: number,
+  sceneId: number,
   videoUrl: string
 ): Promise<boolean> {
   try {
@@ -408,12 +401,12 @@ export async function updateSceneVideoUrl(
       .update({ video_url: videoUrl })
       .eq('story_id', storyId)
       .eq('scene_id', sceneId)
-    
+
     if (error) {
       console.error('Error updating scene video URL:', error)
       return false
     }
-    
+
     return true
   } catch (error) {
     console.error('Error updating scene video URL:', error)
@@ -432,16 +425,16 @@ export async function getAvailableModels(): Promise<{
       .from('models')
       .select('*')
       .order('name', { ascending: true })
-    
+
     if (error) {
       console.error('Error fetching models:', error)
       return null
     }
-    
+
     const characterModels = models.filter(m => m.type === 'character')
     const sceneModels = models.filter(m => m.type === 'scene')
     const videoModels = models.filter(m => m.type === 'video')
-    
+
     return {
       characterModels,
       sceneModels,
@@ -462,12 +455,12 @@ export async function getModelsByType(type: 'character' | 'scene'): Promise<Mode
       .eq('type', type)
       .order('is_default', { ascending: false })
       .order('name', { ascending: true })
-    
+
     if (error) {
       console.error('Error fetching models:', error)
       return null
     }
-    
+
     // Map is_default to isDefault
     return data.map((item) => ({
       ...item,
@@ -487,12 +480,12 @@ export async function getModelByName(name: string): Promise<ModelRecord | null> 
       .select('*')
       .eq('name', name)
       .single()
-    
+
     if (error) {
       console.error('Error fetching model:', error)
       return null
     }
-    
+
     return {
       ...data,
       isDefault: data.is_default,
@@ -516,20 +509,20 @@ export async function addModel(name: string, type: 'character' | 'scene', link: 
         formattedLink = `https://fal.run/${link}`;
       }
     }
-    
+
     // If setting as default, unset the current default for this type
     if (isDefault) {
       const { error: updateError } = await supabase
         .from('models')
         .update({ is_default: false })
         .eq('type', type)
-      
+
       if (updateError) {
         console.error('Error unsetting default models:', updateError)
         return null
       }
     }
-    
+
     // Insert the new model
     const { data, error } = await supabase
       .from('models')
@@ -542,12 +535,12 @@ export async function addModel(name: string, type: 'character' | 'scene', link: 
         }
       ])
       .select()
-    
+
     if (error) {
       console.error('Error adding model:', error)
       return null
     }
-    
+
     return data[0] as ModelRecord
   } catch (error) {
     console.error('Error adding model:', error)
@@ -562,12 +555,12 @@ export async function deleteModelById(id: number): Promise<boolean> {
       .from('models')
       .delete()
       .eq('id', id)
-    
+
     if (error) {
       console.error('Error deleting model:', error)
       return false
     }
-    
+
     return true
   } catch (error) {
     console.error('Error deleting model:', error)
@@ -584,24 +577,24 @@ export async function getAllModels(): Promise<{ characterModels: ModelRecord[], 
       .eq('type', 'character')
       .order('is_default', { ascending: false })
       .order('name', { ascending: true })
-    
+
     if (charError) {
       console.error('Error fetching character models:', charError)
       return null
     }
-    
+
     const { data: sceneModels, error: sceneError } = await supabase
       .from('models')
       .select('*')
       .eq('type', 'scene')
       .order('is_default', { ascending: false })
       .order('name', { ascending: true })
-    
+
     if (sceneError) {
       console.error('Error fetching scene models:', sceneError)
       return null
     }
-    
+
     return {
       characterModels: characterModels.map((item) => ({
         ...item,
