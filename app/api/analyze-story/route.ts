@@ -39,56 +39,19 @@ function preprocessText(text: string): string {
     .trim() // Trim whitespace
 }
 
-// Create storybook-optimized prompt
-function createStorybookPrompt(story: string): string {
-  return `You are an expert literary analyst AI tasked with analyzing a story to extract detailed information about characters and scenes, optimized for generating beautiful, cohesive storybook illustrations. Your goal is to process the story and produce a JSON response with rich, vivid descriptions that support static illustration generation, ensuring narrative flow, visual consistency, and storybook aesthetics.
+export async function POST(request: Request) {
+  try {
+    const { story, title } = await request.json()
 
-Analyze the story thoroughly: Break down the narrative into a sufficient number of detailed scenes to fully capture the content (aim for enough scenes as needed, splitting based on key events, location changes, time shifts, character developments, or plot progressions to ensure comprehensive coverage of important story moments). Provide comprehensive, illustration-focused details for each category. For characters, craft the 'description' field as a rich, vivid narrative focusing on physical appearance (face shape, expressions, age, build, skin tone, hair, eyes), clothing style, posture, and distinctive visual characteristics that would make them recognizable across multiple storybook illustrations. For scenes, craft the 'description' field as a detailed, atmospheric description perfect for static illustration: describe the setting, lighting, mood, character positions and expressions, key objects or elements, emotional atmosphere, and the overall composition that would create a compelling storybook page illustration.
-
-Focus on key visual moments that capture the essence of each story segment. Emphasize illustration quality, artistic composition, and storybook aesthetics throughout. Use descriptive, artistic language that would inspire beautiful, detailed illustrations suitable for children's or literary storybooks.
-
-IMPORTANT: Return ONLY a valid JSON object without any markdown formatting, code blocks, or additional text. Do not wrap the JSON in \`\`\`json\`\`\` blocks. Return the raw JSON object directly with this exact structure:
-{
-  "characters": [
-    {
-      "name": "string",
-      "mentions": number,
-      "description": "string",
-      "attributes": ["string"],
-      "relationships": ["string"],
-      "audioCues": ["string"]
+    if (!story) {
+      return NextResponse.json({ error: 'Story content is required' }, { status: 400 })
     }
-  ],
-  "scenes": [
-    {
-      "id": number,
-      "title": "string",
-      "description": "string",
-      "characters": ["string"],
-      "duration": "string",
-      "audioElements": ["string"]
-    }
-  ]
-}
 
-For each field:
-- **characters.description**: A vivid, detailed paragraph emphasizing physical appearance and visual characteristics perfect for consistent illustration across multiple scenes.
-- **characters.attributes**: Visual elements, clothing style, and distinctive features.
-- **characters.relationships**: Describe key connections and how they might be visually represented.
-- **characters.audioCues**: Character-specific sounds or speech patterns (for potential audio narration).
-- **scenes.description**: A rich, atmospheric description focusing on visual composition: setting details, lighting and mood, character positions and expressions, important objects, emotional atmosphere, and overall artistic composition that would create a beautiful storybook illustration (60-80 words).
-- **scenes.duration**: Estimated reading time for this scene's story text (e.g., "15") in seconds.
-- **scenes.audioElements**: Ambient sounds, music suggestions, or dialogue cues for potential narration.
+    // Preprocess the story text
+    const preprocessedStory = preprocessText(story)
 
-Ensure all descriptions use artistic, evocative language to directly inspire storybook illustration generation with consistent character designs and beautiful, atmospheric scenes.
-
-Story to analyze:
-${story}`
-}
-
-// Create video-optimized prompt (original)
-function createVideoPrompt(story: string): string {
-  return `You are an expert literary analyst AI tasked with analyzing a story to extract detailed information about characters and scenes, optimized for generating stunning, cohesive video clips that merge into a single video. Your goal is to process the story and produce a JSON response with rich, vivid descriptions that support dynamic video production, ensuring narrative flow, visual continuity, and emotional depth.
+    // Create the prompt for OpenAI
+    const prompt = `You are an expert literary analyst AI tasked with analyzing a story to extract detailed information about characters and scenes, optimized for generating stunning, cohesive video clips that merge into a single video. Your goal is to process the story and produce a JSON response with rich, vivid descriptions that support dynamic video production, ensuring narrative flow, visual continuity, and emotional depth.
 
 Analyze the story thoroughly: Break down the narrative into a sufficient number of detailed scenes to fully capture the content (aim for enough number of scenes as needed, splitting based on key events, location changes, time shifts, character developments, or plot progressions to ensure comprehensive coverage without rushing through important moments). Provide comprehensive, cinematic details for each category. For characters, craft the 'description' field as a rich, vivid narrative focusing on physical appearance (face shape, expressions, age, build, skin tone, hair, eyes), clothing, mannerisms, emotional states, and how they move/interact to evoke stunning visuals. For scenes, craft the 'description' field as a detailed, step-by-step script-like narrative that flows sequentially: describe opening visuals, character entrances/actions/dialogues, situation changes, emotional shifts, interactions, evolving dynamics, integrated camera angles/movements/visual style, audio elements, and the transition to the next scene, using immersive, sensory language to inspire video generation models.
 
@@ -124,28 +87,13 @@ For each field:
 - **characters.relationships**: Describe key connections.
 - **characters.audioCues**: Specify voice or sound motifs.
 - **scenes.description**: Expand into a rich, sequential script: Open with establishing shot and atmosphere; detail character appearances/actions/dialogues; describe changes in situations/emotions/dynamics; weave in camera angles/movements, visual style, audio, and how elements evolve for tension/drama/wonder; conclude with the transition to the next scene (80~100 words).
-- **scenes.duration**: Estimate the scene's duration in the video (e.g., "30") Should not exceed 20 seconds and represented in number, calculated in seconds.
+- **scenes.duration**: Estimate the scene’s duration in the video (e.g., "30") Should not exceed 20 seconds and represented in number, calculated in seconds.
 - **scenes.audioElements**: List sound effects, music, or dialogue cues.
 
 Ensure all enriched descriptions use sensory, dynamic language to directly feed video generation models for stunning, fluid clips with character evolutions and situational changes.
 
 Story to analyze:
-${story}`
-}
-
-export async function POST(request: Request) {
-  try {
-    const { story, title, serviceType = 'video' } = await request.json()
-
-    if (!story) {
-      return NextResponse.json({ error: 'Story content is required' }, { status: 400 })
-    }
-
-    // Preprocess the story text
-    const preprocessedStory = preprocessText(story)
-
-    // Create the appropriate prompt based on service type
-    const prompt = serviceType === 'storybook' ? createStorybookPrompt(preprocessedStory) : createVideoPrompt(preprocessedStory)
+${preprocessedStory}`
 
     // Call OpenAI API
     const response = await openai.chat.completions.create({
