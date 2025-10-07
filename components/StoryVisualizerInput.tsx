@@ -17,8 +17,7 @@ export default function StoryVisualizerInput() {
   const [progress, setProgress] = useState(0)
   const [characterModel, setCharacterModel] = useState("")
   const [sceneModel, setSceneModel] = useState("")
-  const [videoModel, setVideoModel] = useState("")
-  const [models, setModels] = useState<{character: any[], scene: any[], video: any[]}>({character: [], scene: [], video: []})
+  const [models, setModels] = useState<{ character: any[], scene: any[] }>({ character: [], scene: [] })
   const router = useRouter()
 
   // Fetch available models
@@ -27,81 +26,66 @@ export default function StoryVisualizerInput() {
       try {
         const response = await fetch('/api/models')
         const data = await response.json()
-        
+
         if (data.characterModels && data.sceneModels) {
           setModels({
             character: data.characterModels,
-            scene: data.sceneModels,
-            video: data.videoModels || []
+            scene: data.sceneModels
           })
-          
+
           // Set default models
           const defaultCharacterModel = data.characterModels.find((m: any) => m.isDefault)
           const defaultSceneModel = data.sceneModels.find((m: any) => m.isDefault)
-          const defaultVideoModel = data.videoModels?.find((m: any) => m.isDefault)
-          
+
           if (defaultCharacterModel && !characterModel) {
             setCharacterModel(defaultCharacterModel.name)
           }
           if (defaultSceneModel && !sceneModel) {
             setSceneModel(defaultSceneModel.name)
-          }
-          if (defaultVideoModel && !videoModel) {
-            setVideoModel(defaultVideoModel.name)
           }
         } else if (data.models) {
           // If only models array is returned, filter by type
           const characterModels = data.models.filter((m: any) => m.type === 'character')
           const sceneModels = data.models.filter((m: any) => m.type === 'scene')
-          const videoModels = data.models.filter((m: any) => m.type === 'video')
-          
+
           setModels({
             character: characterModels,
-            scene: sceneModels,
-            video: videoModels
+            scene: sceneModels
           })
-          
+
           // Set default models
           const defaultCharacterModel = characterModels.find((m: any) => m.isDefault)
           const defaultSceneModel = sceneModels.find((m: any) => m.isDefault)
-          const defaultVideoModel = videoModels.find((m: any) => m.isDefault)
-          
+
           if (defaultCharacterModel && !characterModel) {
             setCharacterModel(defaultCharacterModel.name)
           }
           if (defaultSceneModel && !sceneModel) {
             setSceneModel(defaultSceneModel.name)
           }
-          if (defaultVideoModel && !videoModel) {
-            setVideoModel(defaultVideoModel.name)
-          }
         } else {
           // Fallback to default models
           setModels({
-            character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/", isDefault: true}],
-            scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev", isDefault: true}],
-            video: [{name: "stable-video-diffusion", link: "https://fal.run/fal-ai/stable-video-diffusion", isDefault: true}]
+            character: [{ name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/", isDefault: true }],
+            scene: [{ name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev", isDefault: true }]
           })
-          
+
           if (!characterModel) setCharacterModel("nano-banana")
           if (!sceneModel) setSceneModel("flux-dev")
-          if (!videoModel) setVideoModel("stable-video-diffusion")
         }
       } catch (error) {
         console.error("Error fetching models:", error)
         // Set default models if fetch fails
         setModels({
-          character: [{name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/", isDefault: true}],
-          scene: [{name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev", isDefault: true}],
-          video: [{name: "stable-video-diffusion", link: "https://fal.run/fal-ai/stable-video-diffusion", isDefault: true}]
+          character: [{ name: "nano-banana", link: "https://fal.run/fal-ai/nano-banana/", isDefault: true }],
+          scene: [{ name: "flux-dev", link: "https://fal.run/fal-ai/flux/dev", isDefault: true }]
         })
-        
+
         if (!characterModel) setCharacterModel("nano-banana")
         if (!sceneModel) setSceneModel("flux-dev")
-        if (!videoModel) setVideoModel("stable-video-diffusion")
       }
     }
-    
+
     fetchModels()
   }, [])
 
@@ -114,21 +98,20 @@ export default function StoryVisualizerInput() {
     try {
       setProgress(30)
       const analysis = await analyzeStoryWithOpenAI(story, storyTitle || "Untitled Story")
-      
+
       setProgress(40)
-      
+
       const payload = {
         title: storyTitle || "Untitled Story",
         story: story,
         analysis: analysis,
         characterModel: characterModel,
-        sceneModel: sceneModel,
-        videoModel: videoModel
+        sceneModel: sceneModel
       }
-      
+
       sessionStorage.setItem('storyAnalysis', JSON.stringify(payload))
       setProcessing(false)
-      
+
       // Navigate to the visualize page
       router.push('/visualize')
     } catch (error) {
@@ -200,7 +183,7 @@ export default function StoryVisualizerInput() {
                     className="min-h-[200px] text-base leading-relaxed resize-none border-border/50 focus:border-primary/50"
                   />
                 </div>
-                
+
                 {/* Model Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -222,7 +205,7 @@ export default function StoryVisualizerInput() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium mb-2 block">Scene Generation Model</label>
                     <Select value={sceneModel} onValueChange={setSceneModel}>
@@ -242,33 +225,15 @@ export default function StoryVisualizerInput() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Video Generation Model</label>
-                    <Select value={videoModel} onValueChange={setVideoModel}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select video model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {models.video.map((model: any) => (
-                          <SelectItem key={model.name} value={model.name}>
-                            <div className="flex items-center gap-2">
-                              {model.isDefault && <Star className="w-3 h-3 fill-amber-400 text-amber-400" />}
-                              <span>{model.name}</span>
-                              {model.isDefault && <span className="text-xs text-amber-600">(Default)</span>}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-muted-foreground">{story.length} characters</span>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => router.push('/gallery')}
                     className="flex items-center gap-2"
                   >

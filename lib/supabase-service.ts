@@ -135,7 +135,6 @@ export async function getAllStories(): Promise<Array<{
   models: {
     characterModel: string | null
     sceneModel: string | null
-    videoModel: string | null
   }
   createdAt: string
 }> | null> {
@@ -204,8 +203,7 @@ export async function getAllStories(): Promise<Array<{
         analysis: updatedAnalysis,
         models: {
           characterModel: story.character_model_name,
-          sceneModel: story.scene_model_name,
-          videoModel: story.video_model_name
+          sceneModel: story.scene_model_name
         },
         createdAt: story.created_at
       }
@@ -228,7 +226,6 @@ export async function getStoryById(id: number): Promise<{
   models: {
     characterModel: string | null
     sceneModel: string | null
-    videoModel: string | null
   }
   createdAt: string
 } | null> {
@@ -295,8 +292,7 @@ export async function getStoryById(id: number): Promise<{
       analysis: updatedAnalysis,
       models: {
         characterModel: story.character_model_name,
-        sceneModel: story.scene_model_name,
-        videoModel: story.video_model_name
+        sceneModel: story.scene_model_name
       },
       createdAt: story.created_at
     }

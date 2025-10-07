@@ -32,7 +32,6 @@ interface Story {
   models: {
     characterModel: string | null
     sceneModel: string | null
-    videoModel: string | null
   }
   createdAt: string
 }
@@ -243,14 +242,7 @@ export default function GalleryPage() {
                           </Badge>
                         </div>
                       )}
-                      {story.models.videoModel && (
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Video Model:</span>
-                          <Badge variant="outline" className="text-xs">
-                            {story.models.videoModel}
-                          </Badge>
-                        </div>
-                      )}
+
                     </div>
                   </CardContent>
                 </Card>
