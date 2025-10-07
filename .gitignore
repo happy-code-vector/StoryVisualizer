@@ -27,3 +27,7 @@ story-visualizer.db
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/.kiro
+/.swc
+/.vscode
