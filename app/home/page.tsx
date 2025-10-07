@@ -93,30 +93,115 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="py-20 px-4">
-        <div className="container max-w-4xl mx-auto text-center">
-          <div className="mb-8">
+        <div className="container max-w-6xl mx-auto text-center">
+          <div className="mb-12">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text">
               Transform Your Stories Into Visual Masterpieces
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Bring your narratives to life with AI-powered character and scene generation. 
-              Create stunning visual stories that captivate your audience.
+            <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+              Choose your creative journey: Generate illustrated storybooks or create dynamic story videos with AI-powered visual generation.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={isAuthenticated ? "/story" : "/login"}>
-                <Button size="lg" className="text-lg px-8">
-                  {isAuthenticated ? "Continue Creating" : "Start Creating"} <ArrowRight className="ml-2 w-5 h-5" />
+          </div>
+
+          {/* Service Selection Cards */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-8">
+            {/* Storybook Generator Card */}
+            <Card className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 border-2 hover:border-primary/50">
+              <Link href={isAuthenticated ? "/story" : "/login"} className="block">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto mb-4 p-4 bg-primary/10 rounded-full w-20 h-20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <BookOpen className="w-10 h-10 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl mb-2">Storybook Generator</CardTitle>
+                  <CardDescription className="text-base">
+                    Create beautiful illustrated storybooks with AI-generated characters and scenes. Perfect for children's books, narratives, and visual storytelling.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3 text-sm text-muted-foreground mb-6">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Character illustrations</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Scene-by-scene visualization</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Story text integration</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Storybook-optimized prompts</span>
+                    </div>
+                  </div>
+                  <Button className="w-full group-hover:bg-primary/90 transition-colors">
+                    {isAuthenticated ? "Create Storybook" : "Get Started"}
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </CardContent>
+              </Link>
+            </Card>
+
+            {/* Story Video Generator Card */}
+            <Card className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 border-2 hover:border-primary/30 relative overflow-hidden">
+              <div className="absolute top-4 right-4 z-10">
+                <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
+                  Coming Soon
+                </Badge>
+              </div>
+              <div className="opacity-60 group-hover:opacity-70 transition-opacity">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto mb-4 p-4 bg-muted/20 rounded-full w-20 h-20 flex items-center justify-center group-hover:bg-muted/30 transition-colors">
+                    <Video className="w-10 h-10 text-muted-foreground" />
+                  </div>
+                  <CardTitle className="text-2xl mb-2 text-muted-foreground">Story Video Generator</CardTitle>
+                  <CardDescription className="text-base">
+                    Transform your stories into dynamic videos with animated scenes, character movements, and cinematic storytelling.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3 text-sm text-muted-foreground mb-6">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>Animated character sequences</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>Dynamic scene transitions</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>Audio integration</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>Cinematic effects</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full" disabled>
+                    Notify Me When Available
+                    <Calendar className="ml-2 w-4 h-4" />
+                  </Button>
+                </CardContent>
+              </div>
+            </Card>
+          </div>
+
+          {/* Sign In Prompt for Non-Authenticated Users */}
+          {!isAuthenticated && (
+            <div className="text-center">
+              <p className="text-muted-foreground mb-4">
+                Already have an account?
+              </p>
+              <Link href="/login">
+                <Button variant="outline" size="lg" className="text-lg px-8">
+                  Sign In
                 </Button>
               </Link>
-              {!isAuthenticated && (
-                <Link href="/login">
-                  <Button variant="outline" size="lg" className="text-lg px-8">
-                    Sign In
-                  </Button>
-                </Link>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
