@@ -9,13 +9,15 @@ import {
   ImageIcon, 
   History, 
   Settings,
-  Image
+  Image,
+  Video
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 const navigationItems = [
   { name: "Home", href: "/home", icon: BookOpen },
   { name: "Story", href: "/story", icon: BookOpen },
+  { name: "Video Generator", href: "/video-generator", icon: Video },
   { name: "Gallery", href: "/gallery", icon: Image },
 ]
 
