@@ -19,12 +19,13 @@ interface Scene {
 interface StoryEditorProps {
   story: string
   setStory: (story: string) => void
+  scenes: Scene[]
+  setScenes: (scenes: Scene[]) => void
   onNext: () => void
   onBack: () => void
 }
 
-export function StoryEditor({ story, setStory, onNext, onBack }: StoryEditorProps) {
-  const [scenes, setScenes] = useState<Scene[]>([])
+export function StoryEditor({ story, setStory, scenes, setScenes, onNext, onBack }: StoryEditorProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [selectedScene, setSelectedScene] = useState<number | null>(null)
 

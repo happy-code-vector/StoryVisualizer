@@ -13,6 +13,7 @@ export default function VideoGeneratorPage() {
   const [activeTab, setActiveTab] = useState('idea')
   const [idea, setIdea] = useState('')
   const [story, setStory] = useState('')
+  const [scenes, setScenes] = useState<any[]>([])
   const [settings, setSettings] = useState({
     duration: 20,
     segmentLength: 8,
@@ -56,6 +57,8 @@ export default function VideoGeneratorPage() {
           <StoryEditor
             story={story}
             setStory={setStory}
+            scenes={scenes}
+            setScenes={setScenes}
             onNext={() => setActiveTab('settings')}
             onBack={() => setActiveTab('idea')}
           />
@@ -75,6 +78,7 @@ export default function VideoGeneratorPage() {
           <GenerationProgress
             story={story}
             settings={settings}
+            scenes={scenes}
             isGenerating={isGenerating}
             setIsGenerating={setIsGenerating}
             setVideoUrl={setVideoUrl}

@@ -7,8 +7,32 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { story, settings } = await request.json()
+    const { story, settings, scenes } = await request.json()
 
+    // If scenes are provided, create segments based on scenes
+    if (scenes && scenes.length > 0) {
+      const segmentsWithScenes = scenes.map((scene: any, sceneIndex: number) => {
+        const segmentsPerScene = Math.ceil(scene.duration / settings.segmentLength)
+        const sceneSegments = []
+
+        for (let i = 0; i < segmentsPerScene; i++) {
+          sceneSegments.push({
+            prompt: `${scene.visualPrompt}. Part ${i + 1} of ${segmentsPerScene}. ${settings.style} style, cinematic, high quality`,
+            sceneId: scene.id,
+            sceneIndex: sceneIndex,
+            sceneTitle: `Scene ${sceneIndex + 1}`,
+            segmentInScene: i + 1,
+            totalInScene: segmentsPerScene
+          })
+        }
+
+        return sceneSegments
+      }).flat()
+
+      return NextResponse.json({ segments: segmentsWithScenes })
+    }
+
+    // Fallback: Create segments from full story if no scenes provided
     const totalSeconds = settings.duration * 60
     const segmentCount = Math.ceil(totalSeconds / settings.segmentLength)
 

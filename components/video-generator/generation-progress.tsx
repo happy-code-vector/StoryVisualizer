@@ -12,6 +12,7 @@ import { ArrowLeft, CheckCircle2, Loader2, XCircle, Play, Eye, RefreshCw, Edit }
 interface GenerationProgressProps {
   story: string
   settings: any
+  scenes?: any[]
   isGenerating: boolean
   setIsGenerating: (generating: boolean) => void
   setVideoUrl: (url: string | null) => void
@@ -25,11 +26,17 @@ interface Segment {
   status: 'pending' | 'generating' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
+  sceneId?: number
+  sceneIndex?: number
+  sceneTitle?: string
+  segmentInScene?: number
+  totalInScene?: number
 }
 
 export function GenerationProgress({
   story,
   settings,
+  scenes,
   isGenerating,
   setIsGenerating,
   setVideoUrl,
@@ -54,15 +61,31 @@ export function GenerationProgress({
       const response = await fetch('/api/video-generator/prepare-segments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story, settings })
+        body: JSON.stringify({ story, settings, scenes })
       })
 
       const data = await response.json()
-      setSegments(data.segments.map((prompt: string, index: number) => ({
-        id: index,
-        prompt,
-        status: 'pending' as const
-      })))
+      setSegments(data.segments.map((segment: any, index: number) => {
+        // Handle both old format (string) and new format (object with scene info)
+        if (typeof segment === 'string') {
+          return {
+            id: index,
+            prompt: segment,
+            status: 'pending' as const
+          }
+        } else {
+          return {
+            id: index,
+            prompt: segment.prompt,
+            status: 'pending' as const,
+            sceneId: segment.sceneId,
+            sceneIndex: segment.sceneIndex,
+            sceneTitle: segment.sceneTitle,
+            segmentInScene: segment.segmentInScene,
+            totalInScene: segment.totalInScene
+          }
+        }
+      }))
     } catch (error) {
       console.error('Failed to prepare segments:', error)
     }
@@ -253,7 +276,17 @@ export function GenerationProgress({
                   </div>
 
                   <div className="flex-1 space-y-2">
-                    <div className="font-medium">Segment {index + 1}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">Segment {index + 1}</div>
+                      {segment.sceneTitle && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                          {segment.sceneTitle}
+                          {segment.segmentInScene && segment.totalInScene && 
+                            ` (${segment.segmentInScene}/${segment.totalInScene})`
+                          }
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {segment.prompt}
                     </p>
