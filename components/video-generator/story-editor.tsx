@@ -70,7 +70,10 @@ export function StoryEditor({ story, setStory, scenes, setScenes, onNext, onBack
         <CardHeader>
           <CardTitle>Scenes ({scenes.length})</CardTitle>
           <CardDescription>
-            Total duration: {Math.floor(totalDuration / 60)}:{(totalDuration % 60).toString().padStart(2, '0')}
+            <div className="space-y-1">
+              <div>Total duration: {Math.floor(totalDuration / 60)}:{(totalDuration % 60).toString().padStart(2, '0')}</div>
+              <div className="text-xs">Adjust individual scene durations to change total</div>
+            </div>
           </CardDescription>
         </CardHeader>
         <CardContent>

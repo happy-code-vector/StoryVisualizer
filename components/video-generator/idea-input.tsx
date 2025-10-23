@@ -136,7 +136,7 @@ export function IdeaInput({ idea, setIdea, story, setStory, onNext }: IdeaInputP
                 <Label htmlFor="idea">Video Idea</Label>
                 <Textarea
                   id="idea"
-                  placeholder="Example: A documentary about the journey of a coffee bean from farm to cup, showing the entire process..."
+                  placeholder="Example: A 5-minute documentary about the journey of a coffee bean from farm to cup, showing the entire process...&#10;&#10;Tip: You can mention duration in your idea (e.g., '3-minute video', '10 minutes long') or let AI decide."
                   value={idea}
                   onChange={(e) => setIdea(e.target.value)}
                   rows={12}

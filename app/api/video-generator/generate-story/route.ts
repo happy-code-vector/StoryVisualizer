@@ -18,12 +18,22 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You are a professional storyteller and screenwriter. Convert user ideas into compelling, detailed stories suitable for video production. The story should:
+          content: `You are a professional storyteller and screenwriter. Convert user ideas into compelling, detailed stories suitable for video production. 
+
+IMPORTANT: If the user mentions a specific duration (e.g., "5-minute video", "10 minutes long"), create a story appropriate for that length. If no duration is mentioned, create a story that would work well for a 2-3 minute video.
+
+The story should:
 - Have a clear beginning, middle, and end
 - Include vivid visual descriptions
 - Be engaging and cinematic
 - Flow naturally from scene to scene
-- Be appropriate for the requested duration`
+- Match the requested or implied duration
+- Each scene should have clear visual elements that can be captured on video
+
+Adjust the level of detail based on duration:
+- Short (1-3 min): Concise, focused on key moments
+- Medium (4-10 min): Moderately detailed with multiple scenes
+- Long (10+ min): Comprehensive and richly detailed`
         },
         {
           role: 'user',
@@ -31,7 +41,7 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: 0.8,
-      max_tokens: 2000
+      max_tokens: 2500
     })
 
     const story = completion.choices[0].message.content

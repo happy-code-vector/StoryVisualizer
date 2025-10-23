@@ -15,7 +15,7 @@ export default function VideoGeneratorPage() {
   const [story, setStory] = useState('')
   const [scenes, setScenes] = useState<any[]>([])
   const [settings, setSettings] = useState({
-    duration: 20,
+    duration: 2,
     segmentLength: 8,
     style: 'cinematic',
     aspectRatio: '16:9',
@@ -59,7 +59,12 @@ export default function VideoGeneratorPage() {
             setStory={setStory}
             scenes={scenes}
             setScenes={setScenes}
-            onNext={() => setActiveTab('settings')}
+            onNext={() => {
+              // Update settings duration based on total scene duration
+              const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 0)
+              setSettings(prev => ({ ...prev, duration: Math.ceil(totalDuration / 60) }))
+              setActiveTab('settings')
+            }}
             onBack={() => setActiveTab('idea')}
           />
         </TabsContent>
