@@ -201,10 +201,6 @@ export default function VideoGeneratorPage() {
             {activeStep === 'generate' && (
               <div className="h-full overflow-y-auto">
                 <div className="max-w-7xl mx-auto p-8 space-y-6">
-                  <Button variant="outline" onClick={() => setActiveStep('settings')} disabled={isGenerating}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
                   <GenerationProgress
                     story={story}
                     settings={settings}
