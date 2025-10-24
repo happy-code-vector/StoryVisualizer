@@ -270,6 +270,21 @@ export function GenerationProgress({
                   Start Video Generation
                 </Button>
               )}
+              {canStitch && (
+                <Button onClick={stitchVideos} className="w-full" size="lg" disabled={stitchingVideo}>
+                  {stitchingVideo ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Stitching...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-5 w-5" />
+                      Stitch Videos ({completedCount} segments)
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
 
             {isPreparingSegments ? (
@@ -313,22 +328,6 @@ export function GenerationProgress({
           </div>
         ) : (
           <>
-            {canStitch && (
-              <Button onClick={stitchVideos} className="w-full" size="lg" disabled={stitchingVideo}>
-                {stitchingVideo ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Stitching...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-5 w-5" />
-                    Stitch Videos ({completedCount} segments)
-                  </>
-                )}
-              </Button>
-            )}
-
             <ScrollArea className="h-[calc(100vh-21rem)]">
               <div className="space-y-6 pr-4">
                 {sceneKeys.map((sceneKey) => {
