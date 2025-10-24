@@ -282,8 +282,8 @@ export function GenerationProgress({
               </Button>
             )}
 
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-6">
+            <ScrollArea className="h-[calc(100vh-21rem)]">
+              <div className="space-y-6 pr-4">
                 {sceneKeys.map((sceneKey) => {
                   const sceneSegments = segmentsByScene[sceneKey]
                   const firstSegment = sceneSegments[0]
