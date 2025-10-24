@@ -167,10 +167,20 @@ export function GenerationProgress({
 
   const startGeneration = async () => {
     setIsGenerating(true)
+    const BATCH_SIZE = 5 // Process 3 segments in parallel
 
-    for (let i = 0; i < segments.length; i++) {
-      setCurrentSegment(i)
-      await generateSegment(i, segments[i].prompt)
+    // Process segments in batches
+    for (let i = 0; i < segments.length; i += BATCH_SIZE) {
+      const batch = segments.slice(i, i + BATCH_SIZE)
+      const batchPromises = batch.map(segment => 
+        generateSegment(segment.id, segment.prompt)
+      )
+      
+      // Update current segment to show progress
+      setCurrentSegment(Math.min(i + BATCH_SIZE - 1, segments.length - 1))
+      
+      // Wait for all segments in the batch to complete
+      await Promise.allSettled(batchPromises)
     }
 
     setIsGenerating(false)
@@ -277,7 +287,7 @@ export function GenerationProgress({
                     {stitchingVideo
                       ? 'Stitching video segments together...'
                       : isGenerating
-                        ? `Generating segment ${currentSegment + 1} of ${segments.length}`
+                        ? `Generating segments in parallel (batch processing)...`
                         : completedCount === 0
                           ? 'Ready to start generation'
                           : `${completedCount} segment${completedCount > 1 ? 's' : ''} completed`}
