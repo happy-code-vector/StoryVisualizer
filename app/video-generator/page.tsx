@@ -26,7 +26,7 @@ export default function VideoGeneratorPage() {
   const [context, setContext] = useState<any>(null)
   const [settings, setSettings] = useState({
     duration: 2,
-    segmentLength: 8,
+    segmentLength: 5,
     style: 'cinematic',
     aspectRatio: '16:9',
     fps: 24,

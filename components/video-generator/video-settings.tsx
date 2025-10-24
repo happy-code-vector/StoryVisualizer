@@ -66,11 +66,8 @@ export function VideoSettings({ settings, setSettings, story, onNext, onBack }: 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="4">4 seconds</SelectItem>
-                <SelectItem value="6">6 seconds</SelectItem>
-                <SelectItem value="8">8 seconds</SelectItem>
+                <SelectItem value="5">5 seconds</SelectItem>
                 <SelectItem value="10">10 seconds</SelectItem>
-                <SelectItem value="12">12 seconds</SelectItem>
               </SelectContent>
             </Select>
           </div>
