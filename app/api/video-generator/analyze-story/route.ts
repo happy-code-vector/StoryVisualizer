@@ -24,10 +24,19 @@ IMPORTANT: Determine an appropriate total duration based on the story content an
 
 Each scene should:
 - Be 5-12 seconds long (adjust based on content importance)
-- Have a clear visual description
+- Have a CONCRETE visual description (avoid abstract terms)
 - Flow smoothly to the next scene
 - Be specific and detailed for AI video generation
-- The total duration should match the story's natural pacing
+
+VISUAL PROMPT GUIDELINES:
+✓ DO describe: specific colors, shapes, textures, lighting direction, facial expressions, body language, clothing details, environmental elements
+✓ DO use: "warm orange sunset light", "weathered wooden table", "person with furrowed brow and downcast eyes"
+✗ DON'T use: "hyper-realistic", "modern", "professional", "high-quality", "stunning", "beautiful", "amazing"
+✗ DON'T use abstract style terms - describe what you SEE, not how it should feel
+
+Example GOOD prompt: "A woman in her 40s with shoulder-length brown hair, wearing a blue cotton shirt, sitting at a wooden kitchen table with morning sunlight streaming through a window behind her, casting long shadows across the table surface"
+
+Example BAD prompt: "A modern professional woman in a beautiful kitchen with stunning lighting and hyper-realistic details"
 
 You MUST respond with valid JSON only, no other text. Use this exact structure:
 {
@@ -36,14 +45,14 @@ You MUST respond with valid JSON only, no other text. Use this exact structure:
       "id": 0,
       "text": "scene narrative text",
       "duration": 8,
-      "visualPrompt": "detailed visual description for AI generation"
+      "visualPrompt": "detailed concrete visual description"
     }
   ]
 }`
         },
         {
           role: 'user',
-          content: `Break this story into scenes for video generation. Determine appropriate scene durations based on content. Respond with JSON only:\n\n${story}`
+          content: `Break this story into scenes for video generation. Create CONCRETE visual descriptions (colors, shapes, lighting, expressions) without abstract terms. Respond with JSON only:\n\n${story}`
         }
       ],
       temperature: 0.7

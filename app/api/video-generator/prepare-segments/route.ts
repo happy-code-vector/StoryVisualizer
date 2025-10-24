@@ -41,14 +41,23 @@ Create varied, cinematic prompts that:
 - Progress naturally (e.g., wide shot → medium shot → close-up)
 - Maintain visual continuity
 - Each segment should be distinct but cohesive
-- Include camera movements, lighting, and composition details
-- Match ${settings.style} style
+- Use CONCRETE descriptions only
+
+CRITICAL RULES FOR PROMPTS:
+✓ DO describe: specific colors (navy blue, burnt orange), textures (rough bark, smooth glass), lighting (soft morning light from left, harsh overhead fluorescent), facial expressions (slight smile, furrowed brow), body positions, clothing details, object shapes and sizes
+✓ DO specify: camera distance (3 feet away, 20 feet high), camera angle (eye level, low angle looking up), movement direction (camera slowly moves left to right)
+✗ DON'T use: "hyper-realistic", "modern", "professional", "high-quality", "stunning", "beautiful", "cinematic", "dramatic", "amazing", "perfect"
+✗ DON'T use abstract style descriptors - describe WHAT you see, not HOW it should feel
+
+Example GOOD: "Camera positioned 10 feet away, eye level, showing a man in his 30s with short black hair and a grey t-shirt, standing in front of a red brick wall with afternoon sunlight creating diagonal shadows across the surface"
+
+Example BAD: "Cinematic shot of a modern professional man in stunning lighting with hyper-realistic details"
 
 You MUST respond with valid JSON only. Use this exact structure:
 {
   "segments": [
-    "detailed prompt for segment 1",
-    "detailed prompt for segment 2",
+    "detailed concrete prompt for segment 1",
+    "detailed concrete prompt for segment 2",
     ...
   ]
 }`
@@ -60,7 +69,7 @@ Visual Description: ${scene.visualPrompt}
 Duration: ${scene.duration} seconds
 Style: ${settings.style}
 
-Create ${segmentsPerScene} progressive video prompts that show this scene from different angles/perspectives. Respond with JSON only.`
+Create ${segmentsPerScene} progressive video prompts with CONCRETE visual descriptions (colors, shapes, lighting, positions, expressions). NO abstract terms like "cinematic" or "beautiful". Respond with JSON only.`
               }
             ],
             temperature: 0.7
@@ -97,20 +106,25 @@ Create ${segmentsPerScene} progressive video prompts that show this scene from d
         {
           role: 'system',
           content: `You are a video production expert. Create ${segmentCount} detailed visual prompts for AI video generation. Each prompt should:
-- Be highly descriptive and visual
-- Match the ${settings.style} style
+- Use CONCRETE visual descriptions only
 - Be suitable for ${settings.segmentLength} second clips
 - Flow smoothly from one to the next
-- Include camera angles, lighting, and mood
+- Include specific camera positions, angles, and lighting details
+
+CRITICAL RULES:
+✓ DO describe: specific colors, textures, lighting direction and quality, facial expressions, body language, clothing details, object shapes, environmental elements, camera distance and angle
+✓ DO use concrete terms: "warm orange light from setting sun", "rough grey concrete wall", "woman with tired eyes and slight frown"
+✗ DON'T use: "hyper-realistic", "modern", "professional", "high-quality", "stunning", "beautiful", "cinematic", "dramatic", "amazing"
+✗ DON'T use abstract style terms
 
 You MUST respond with valid JSON only, no other text. Use this exact structure:
 {
-  "segments": ["prompt 1", "prompt 2", ...]
+  "segments": ["concrete prompt 1", "concrete prompt 2", ...]
 }`
         },
         {
           role: 'user',
-          content: `Create ${segmentCount} video prompts for this story in ${settings.style} style. Respond with JSON only:\n\n${story}`
+          content: `Create ${segmentCount} video prompts for this story. Use CONCRETE visual descriptions (colors, shapes, lighting, expressions) without abstract terms. Respond with JSON only:\n\n${story}`
         }
       ],
       temperature: 0.7
