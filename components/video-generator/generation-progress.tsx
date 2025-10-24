@@ -417,9 +417,15 @@ export function GenerationProgress({
               <Button variant="outline" onClick={() => setEditingSegment(null)}>
                 Cancel
               </Button>
-              <Button onClick={saveEditedPrompt}>
+              <Button
+                onClick={saveEditedPrompt}
+                disabled={
+                  !editedPrompt.trim() ||
+                  (editingSegment?.videoUrl && editedPrompt === editingSegment?.prompt)
+                }
+              >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Regenerate with New Prompt
+                {editingSegment?.videoUrl ? 'Regenerate with New Prompt' : 'Generate with This Prompt'}
               </Button>
             </div>
           </div>
