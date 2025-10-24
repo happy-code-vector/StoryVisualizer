@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react'
+import { PromptEnhancer } from './prompt-enhancer'
 
 interface Scene {
   id: number
@@ -30,6 +31,8 @@ interface StoryEditorProps {
 export function StoryEditor({ story, setStory, scenes, setScenes, context, setContext, onNext, onBack }: StoryEditorProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [selectedScene, setSelectedScene] = useState<number | null>(null)
+  const [enhancerOpen, setEnhancerOpen] = useState(false)
+  const [enhancingField, setEnhancingField] = useState<'text' | 'visualPrompt' | null>(null)
 
   useEffect(() => {
     if (story && scenes.length === 0) {
@@ -137,7 +140,21 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
               </div>
 
               <div className="space-y-2">
-                <Label>Visual Prompt</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Visual Prompt</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEnhancingField('visualPrompt')
+                      setEnhancerOpen(true)
+                    }}
+                    className="h-7 gap-1.5"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Enhance with AI
+                  </Button>
+                </div>
                 <Textarea
                   value={scenes[selectedScene].visualPrompt}
                   onChange={(e) => updateScene(scenes[selectedScene].id, 'visualPrompt', e.target.value)}
@@ -172,6 +189,19 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
           </div>
         </CardContent>
       </Card>
+
+      {selectedScene !== null && scenes[selectedScene] && enhancingField && (
+        <PromptEnhancer
+          open={enhancerOpen}
+          onOpenChange={setEnhancerOpen}
+          initialPrompt={scenes[selectedScene][enhancingField]}
+          context={context}
+          onApply={(enhancedPrompt) => {
+            updateScene(scenes[selectedScene].id, enhancingField, enhancedPrompt)
+            setEnhancingField(null)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -7,7 +7,8 @@ import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ArrowLeft, CheckCircle2, Loader2, XCircle, Play, Eye, RefreshCw, Edit } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Loader2, XCircle, Play, Eye, RefreshCw, Edit, Sparkles } from 'lucide-react'
+import { PromptEnhancer } from './prompt-enhancer'
 
 interface GenerationProgressProps {
   story: string
@@ -51,6 +52,8 @@ export function GenerationProgress({
   const [previewSegment, setPreviewSegment] = useState<Segment | null>(null)
   const [editingSegment, setEditingSegment] = useState<Segment | null>(null)
   const [editedPrompt, setEditedPrompt] = useState('')
+  const [enhancerOpen, setEnhancerOpen] = useState(false)
+  const [enhancingSegment, setEnhancingSegment] = useState<Segment | null>(null)
 
   useEffect(() => {
     if (!isGenerating && segments.length === 0) {
@@ -388,12 +391,29 @@ export function GenerationProgress({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Textarea
-              value={editedPrompt}
-              onChange={(e) => setEditedPrompt(e.target.value)}
-              rows={6}
-              placeholder="Enter video prompt..."
-            />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Prompt</label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEnhancingSegment(editingSegment)
+                    setEnhancerOpen(true)
+                  }}
+                  className="h-7 gap-1.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Enhance with AI
+                </Button>
+              </div>
+              <Textarea
+                value={editedPrompt}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                rows={6}
+                placeholder="Enter video prompt..."
+              />
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setEditingSegment(null)}>
                 Cancel
@@ -406,6 +426,20 @@ export function GenerationProgress({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Prompt Enhancer */}
+      {enhancingSegment && (
+        <PromptEnhancer
+          open={enhancerOpen}
+          onOpenChange={setEnhancerOpen}
+          initialPrompt={editedPrompt}
+          context={context}
+          onApply={(enhancedPrompt) => {
+            setEditedPrompt(enhancedPrompt)
+            setEnhancingSegment(null)
+          }}
+        />
+      )}
     </div>
   )
 }
