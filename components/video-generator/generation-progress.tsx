@@ -372,12 +372,10 @@ export function GenerationProgress({
         </CardContent>
       </Card>
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack} disabled={isGenerating || stitchingVideo}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </div>
+      <Button variant="outline" onClick={onBack} disabled={isGenerating || stitchingVideo}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
 
       {/* Preview Dialog */}
       <Dialog open={!!previewSegment} onOpenChange={() => setPreviewSegment(null)}>

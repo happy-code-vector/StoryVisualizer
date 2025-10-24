@@ -177,11 +177,7 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
             </>
           )}
 
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
+          <div className="flex gap-3 pt-4">
             <Button onClick={onNext} disabled={scenes.length === 0}>
               Continue to Settings
               <ArrowRight className="ml-2 h-4 w-4" />

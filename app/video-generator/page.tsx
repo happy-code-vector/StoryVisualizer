@@ -6,7 +6,8 @@ import { StoryEditor } from '@/components/video-generator/story-editor'
 import { VideoSettings } from '@/components/video-generator/video-settings'
 import { GenerationProgress } from '@/components/video-generator/generation-progress'
 import { VideoPreview } from '@/components/video-generator/video-preview'
-import { Lightbulb, FileText, Settings, Play, Eye, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Lightbulb, FileText, Settings, Play, Eye, Check, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const steps = [
@@ -156,7 +157,11 @@ export default function VideoGeneratorPage() {
 
             {activeStep === 'story' && (
               <div className="h-full overflow-y-auto">
-                <div className="max-w-7xl mx-auto p-8">
+                <div className="max-w-7xl mx-auto p-8 space-y-6">
+                  <Button variant="outline" onClick={() => setActiveStep('idea')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
                   <StoryEditor
                     story={story}
                     setStory={setStory}
@@ -177,7 +182,11 @@ export default function VideoGeneratorPage() {
 
             {activeStep === 'settings' && (
               <div className="h-full overflow-y-auto">
-                <div className="max-w-6xl mx-auto p-8">
+                <div className="max-w-6xl mx-auto p-8 space-y-6">
+                  <Button variant="outline" onClick={() => setActiveStep('story')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
                   <VideoSettings
                     settings={settings}
                     setSettings={setSettings}
@@ -191,7 +200,11 @@ export default function VideoGeneratorPage() {
 
             {activeStep === 'generate' && (
               <div className="h-full overflow-y-auto">
-                <div className="max-w-7xl mx-auto p-8">
+                <div className="max-w-7xl mx-auto p-8 space-y-6">
+                  <Button variant="outline" onClick={() => setActiveStep('settings')} disabled={isGenerating}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
                   <GenerationProgress
                     story={story}
                     settings={settings}
@@ -209,7 +222,11 @@ export default function VideoGeneratorPage() {
 
             {activeStep === 'preview' && (
               <div className="h-full overflow-y-auto">
-                <div className="max-w-6xl mx-auto p-8">
+                <div className="max-w-6xl mx-auto p-8 space-y-6">
+                  <Button variant="outline" onClick={() => setActiveStep('generate')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
                   <VideoPreview
                     videoUrl={videoUrl}
                     story={story}

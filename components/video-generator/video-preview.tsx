@@ -107,12 +107,10 @@ export function VideoPreview({ videoUrl, story, settings, onBack }: VideoPreview
             </div>
           </div>
 
-          <div className="pt-4">
-            <Button variant="outline" onClick={onBack} className="w-full">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Generate Another Video
-            </Button>
-          </div>
+          <Button variant="outline" onClick={onBack} className="w-full">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Generate Another Video
+          </Button>
         </CardContent>
       </Card>
     </div>
