@@ -198,6 +198,18 @@ export function GenerationProgress({
   const progress = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
   const canStitch = completedCount > 0 && !isGenerating
 
+  // Group segments by scene
+  const segmentsByScene = segments.reduce((acc, segment) => {
+    const sceneKey = segment.sceneIndex !== undefined ? segment.sceneIndex : -1
+    if (!acc[sceneKey]) {
+      acc[sceneKey] = []
+    }
+    acc[sceneKey].push(segment)
+    return acc
+  }, {} as Record<number, Segment[]>)
+
+  const sceneKeys = Object.keys(segmentsByScene).map(Number).sort((a, b) => a - b)
+
   return (
     <Card>
       <CardHeader>
@@ -271,93 +283,117 @@ export function GenerationProgress({
             )}
 
             <ScrollArea className="h-[600px]">
-              <div className="space-y-4">
-                {segments.map((segment, index) => (
-                  <div
-                    key={segment.id}
-                    className="flex gap-3 p-4 rounded-lg border bg-card"
-                  >
-                    <div className="mt-1">
-                      {segment.status === 'completed' && (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      )}
-                      {segment.status === 'generating' && (
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                      )}
-                      {segment.status === 'failed' && (
-                        <XCircle className="h-5 w-5 text-red-500" />
-                      )}
-                      {segment.status === 'pending' && (
-                        <div className="h-5 w-5 rounded-full border-2" />
-                      )}
-                    </div>
+              <div className="space-y-6">
+                {sceneKeys.map((sceneKey) => {
+                  const sceneSegments = segmentsByScene[sceneKey]
+                  const firstSegment = sceneSegments[0]
+                  const sceneCompleted = sceneSegments.filter(s => s.status === 'completed').length
+                  const sceneTotal = sceneSegments.length
 
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium">Segment {index + 1}</div>
-                        {segment.sceneTitle && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                            {segment.sceneTitle}
-                            {segment.segmentInScene && segment.totalInScene &&
-                              ` (${segment.segmentInScene}/${segment.totalInScene})`
-                            }
+                  return (
+                    <div key={sceneKey} className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-semibold text-lg">
+                            {firstSegment.sceneTitle || `Scene ${sceneKey + 1}`}
+                          </h3>
+                          <span className="text-sm text-muted-foreground">
+                            {sceneCompleted} / {sceneTotal} segments
                           </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {segment.prompt}
-                      </p>
-
-                      {segment.videoUrl && (
-                        <div className="aspect-video bg-black rounded-md overflow-hidden">
-                          <video
-                            src={segment.videoUrl}
-                            controls
-                            className="w-full h-full"
-                          />
                         </div>
-                      )}
+                      </div>
 
-                      {segment.error && (
-                        <p className="text-sm text-red-500">{segment.error}</p>
-                      )}
-
-                      <div className="flex gap-2 pt-2">
-                        {segment.videoUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setPreviewSegment(segment)}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {sceneSegments.map((segment) => (
+                          <div
+                            key={segment.id}
+                            className="flex flex-col p-4 rounded-lg border bg-card space-y-3"
                           >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Preview
-                          </Button>
-                        )}
+                            <div className="flex items-start gap-3">
+                              <div className="mt-0.5">
+                                {segment.status === 'completed' && (
+                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                )}
+                                {segment.status === 'generating' && (
+                                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                                )}
+                                {segment.status === 'failed' && (
+                                  <XCircle className="h-5 w-5 text-red-500" />
+                                )}
+                                {segment.status === 'pending' && (
+                                  <div className="h-5 w-5 rounded-full border-2" />
+                                )}
+                              </div>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditSegment(segment)}
-                          disabled={segment.status === 'generating'}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Prompt
-                        </Button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="font-medium">Segment {segment.id + 1}</div>
+                                  {segment.segmentInScene && segment.totalInScene && (
+                                    <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                                      {segment.segmentInScene}/{segment.totalInScene}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
 
-                        {(segment.status === 'failed' || segment.status === 'completed') && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => retrySegment(index)}
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Regenerate
-                          </Button>
-                        )}
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {segment.prompt}
+                            </p>
+
+                            {segment.videoUrl && (
+                              <div className="aspect-video bg-black rounded-md overflow-hidden">
+                                <video
+                                  src={segment.videoUrl}
+                                  controls
+                                  className="w-full h-full"
+                                />
+                              </div>
+                            )}
+
+                            {segment.error && (
+                              <p className="text-sm text-red-500">{segment.error}</p>
+                            )}
+
+                            <div className="flex flex-wrap gap-2">
+                              {segment.videoUrl && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setPreviewSegment(segment)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Preview
+                                </Button>
+                              )}
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditSegment(segment)}
+                                disabled={segment.status === 'generating'}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </Button>
+
+                              {(segment.status === 'failed' || segment.status === 'completed') && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => retrySegment(segment.id)}
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Retry
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </ScrollArea>
           </>
