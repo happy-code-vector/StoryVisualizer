@@ -54,6 +54,7 @@ export function GenerationProgress({
   const [editedPrompt, setEditedPrompt] = useState('')
   const [enhancerOpen, setEnhancerOpen] = useState(false)
   const [enhancingSegment, setEnhancingSegment] = useState<Segment | null>(null)
+  const [isPreparingSegments, setIsPreparingSegments] = useState(false)
 
   useEffect(() => {
     if (!isGenerating && segments.length === 0) {
@@ -62,6 +63,7 @@ export function GenerationProgress({
   }, [])
 
   const initializeSegments = async () => {
+    setIsPreparingSegments(true)
     try {
       const response = await fetch('/api/video-generator/prepare-segments', {
         method: 'POST',
@@ -93,6 +95,8 @@ export function GenerationProgress({
       }))
     } catch (error) {
       console.error('Failed to prepare segments:', error)
+    } finally {
+      setIsPreparingSegments(false)
     }
   }
 
@@ -199,63 +203,75 @@ export function GenerationProgress({
       <Card>
         <CardHeader>
           <CardTitle>Video Generation Progress</CardTitle>
-          <CardDescription>
-            {stitchingVideo
-              ? 'Stitching video segments together...'
-              : isGenerating
-                ? `Generating segment ${currentSegment + 1} of ${segments.length}`
-                : 'Ready to start generation'}
-          </CardDescription>
+          <div className="text-sm text-muted-foreground mt-1.5">
+            {isPreparingSegments
+              ? 'Analyzing story and preparing video segments...'
+              : stitchingVideo
+                ? 'Stitching video segments together...'
+                : isGenerating
+                  ? `Generating segment ${currentSegment + 1} of ${segments.length}`
+                  : completedCount === 0
+                    ? 'Ready to start generation'
+                    : `${completedCount} segment${completedCount > 1 ? 's' : ''} completed`}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Overall Progress</span>
-              <span>{completedCount} / {segments.length} segments</span>
+        <CardContent className="space-y-4">
+          {isPreparingSegments ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="text-center space-y-2">
+                <p className="text-lg font-medium">Preparing Video Segments</p>
+                <p className="text-sm text-muted-foreground">
+                  AI is analyzing your story and creating optimized video prompts...
+                </p>
+              </div>
             </div>
-            <Progress value={progress} className="h-3" />
-          </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Overall Progress</span>
+                  <span>{completedCount} / {segments.length} segments</span>
+                </div>
+                <Progress value={progress} className="h-3" />
+              </div>
 
-          <div className="flex gap-3">
-            {!isGenerating && !stitchingVideo && segments.length > 0 && completedCount === 0 && (
-              <Button onClick={startGeneration} className="flex-1" size="lg">
-                <Play className="mr-2 h-5 w-5" />
-                Start Video Generation
-              </Button>
-            )}
-
-            {canStitch && (
-              <Button onClick={stitchVideos} className="flex-1" size="lg" disabled={stitchingVideo}>
-                {stitchingVideo ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Stitching...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-5 w-5" />
-                    Stitch Videos ({completedCount} segments)
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-
-          {isGenerating && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-8 w-8 animate-spin mr-3" />
-              <span className="text-lg">Generating segment {currentSegment + 1}...</span>
-            </div>
+              {canStitch && (
+                <Button onClick={stitchVideos} className="w-full" size="lg" disabled={stitchingVideo}>
+                  {stitchingVideo ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Stitching...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-5 w-5" />
+                      Stitch Videos ({completedCount} segments)
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Generated Segments</CardTitle>
-          <CardDescription>
-            Preview, edit, and regenerate individual segments
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Generated Segments</CardTitle>
+              <CardDescription>
+                Preview, edit, and regenerate individual segments
+              </CardDescription>
+            </div>
+            {!isGenerating && !stitchingVideo && segments.length > 0 && completedCount === 0 && (
+              <Button onClick={startGeneration} size="lg">
+                <Play className="mr-2 h-5 w-5" />
+                Start Video Generation
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px]">
