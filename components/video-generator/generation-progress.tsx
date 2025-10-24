@@ -203,28 +203,33 @@ export function GenerationProgress({
       <Card>
         <CardHeader>
           <CardTitle>Video Generation Progress</CardTitle>
-          <div className="text-sm text-muted-foreground mt-1.5">
-            {isPreparingSegments
-              ? 'Analyzing story and preparing video segments...'
-              : stitchingVideo
-                ? 'Stitching video segments together...'
-                : isGenerating
-                  ? `Generating segment ${currentSegment + 1} of ${segments.length}`
-                  : completedCount === 0
-                    ? 'Ready to start generation'
-                    : `${completedCount} segment${completedCount > 1 ? 's' : ''} completed`}
-          </div>
+          {isPreparingSegments && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Analyzing story and preparing video segments...</span>
+            </div>
+          )}
+          {!isPreparingSegments && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
+              {(stitchingVideo || isGenerating) && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              )}
+              <span>
+                {stitchingVideo
+                  ? 'Stitching video segments together...'
+                  : isGenerating
+                    ? `Generating segment ${currentSegment + 1} of ${segments.length}`
+                    : completedCount === 0
+                      ? 'Ready to start generation'
+                      : `${completedCount} segment${completedCount > 1 ? 's' : ''} completed`}
+              </span>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {isPreparingSegments ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <div className="text-center space-y-2">
-                <p className="text-lg font-medium">Preparing Video Segments</p>
-                <p className="text-sm text-muted-foreground">
-                  AI is analyzing your story and creating optimized video prompts...
-                </p>
-              </div>
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <>
