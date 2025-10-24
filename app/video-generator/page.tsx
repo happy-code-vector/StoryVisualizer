@@ -14,6 +14,7 @@ export default function VideoGeneratorPage() {
   const [idea, setIdea] = useState('')
   const [story, setStory] = useState('')
   const [scenes, setScenes] = useState<any[]>([])
+  const [context, setContext] = useState<any>(null)
   const [settings, setSettings] = useState({
     duration: 2,
     segmentLength: 8,
@@ -59,6 +60,8 @@ export default function VideoGeneratorPage() {
             setStory={setStory}
             scenes={scenes}
             setScenes={setScenes}
+            context={context}
+            setContext={setContext}
             onNext={() => {
               // Update settings duration based on total scene duration
               const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 0)
@@ -84,6 +87,7 @@ export default function VideoGeneratorPage() {
             story={story}
             settings={settings}
             scenes={scenes}
+            context={context}
             isGenerating={isGenerating}
             setIsGenerating={setIsGenerating}
             setVideoUrl={setVideoUrl}

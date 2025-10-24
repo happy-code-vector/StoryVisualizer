@@ -13,6 +13,7 @@ interface GenerationProgressProps {
   story: string
   settings: any
   scenes?: any[]
+  context?: any
   isGenerating: boolean
   setIsGenerating: (generating: boolean) => void
   setVideoUrl: (url: string | null) => void
@@ -37,6 +38,7 @@ export function GenerationProgress({
   story,
   settings,
   scenes,
+  context,
   isGenerating,
   setIsGenerating,
   setVideoUrl,
@@ -61,7 +63,7 @@ export function GenerationProgress({
       const response = await fetch('/api/video-generator/prepare-segments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story, settings, scenes })
+        body: JSON.stringify({ story, settings, scenes, context })
       })
 
       const data = await response.json()

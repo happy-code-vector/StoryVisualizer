@@ -21,11 +21,13 @@ interface StoryEditorProps {
   setStory: (story: string) => void
   scenes: Scene[]
   setScenes: (scenes: Scene[]) => void
+  context: any
+  setContext: (context: any) => void
   onNext: () => void
   onBack: () => void
 }
 
-export function StoryEditor({ story, setStory, scenes, setScenes, onNext, onBack }: StoryEditorProps) {
+export function StoryEditor({ story, setStory, scenes, setScenes, context, setContext, onNext, onBack }: StoryEditorProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [selectedScene, setSelectedScene] = useState<number | null>(null)
 
@@ -46,6 +48,7 @@ export function StoryEditor({ story, setStory, scenes, setScenes, onNext, onBack
 
       const data = await response.json()
       setScenes(data.scenes)
+      setContext(data.context)
       if (data.scenes.length > 0) {
         setSelectedScene(0)
       }
@@ -73,6 +76,13 @@ export function StoryEditor({ story, setStory, scenes, setScenes, onNext, onBack
             <div className="space-y-1">
               <div>Total duration: {Math.floor(totalDuration / 60)}:{(totalDuration % 60).toString().padStart(2, '0')}</div>
               <div className="text-xs">Adjust individual scene durations to change total</div>
+              {context && (
+                <div className="mt-3 p-2 bg-primary/10 rounded text-xs space-y-1">
+                  <div className="font-semibold">Consistency Context:</div>
+                  {context.timePeriod && <div>• Era: {context.timePeriod}</div>}
+                  {context.location && <div>• Location: {context.location}</div>}
+                </div>
+              )}
             </div>
           </CardDescription>
         </CardHeader>
