@@ -199,82 +199,12 @@ export function GenerationProgress({
   const canStitch = completedCount > 0 && !isGenerating
 
   return (
-    <>    
-      <Button variant="outline" onClick={onBack} disabled={isGenerating || stitchingVideo}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Video Generation Progress</CardTitle>
-            {isPreparingSegments && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Analyzing story and preparing video segments...</span>
-              </div>
-            )}
-            {!isPreparingSegments && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1.5">
-                {(stitchingVideo || isGenerating) && (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                )}
-                <span>
-                  {stitchingVideo
-                    ? 'Stitching video segments together...'
-                    : isGenerating
-                      ? `Generating segment ${currentSegment + 1} of ${segments.length}`
-                      : completedCount === 0
-                        ? 'Ready to start generation'
-                        : `${completedCount} segment${completedCount > 1 ? 's' : ''} completed`}
-                </span>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isPreparingSegments ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Overall Progress</span>
-                    <span>{completedCount} / {segments.length} segments</span>
-                  </div>
-                  <Progress value={progress} className="h-3" />
-                </div>
-
-                {canStitch && (
-                  <Button onClick={stitchVideos} className="w-full" size="lg" disabled={stitchingVideo}>
-                    {stitchingVideo ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Stitching...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="mr-2 h-5 w-5" />
-                        Stitch Videos ({completedCount} segments)
-                      </>
-                    )}
-                  </Button>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Generated Segments</CardTitle>
-                <CardDescription>
-                  Preview, edit, and regenerate individual segments
-                </CardDescription>
-              </div>
+              <CardTitle>Generated Segments</CardTitle>
               {!isGenerating && !stitchingVideo && segments.length > 0 && completedCount === 0 && (
                 <Button onClick={startGeneration} size="lg">
                   <Play className="mr-2 h-5 w-5" />
@@ -282,9 +212,65 @@ export function GenerationProgress({
                 </Button>
               )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[500px]">
+
+            {isPreparingSegments ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Analyzing story and preparing video segments...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {(stitchingVideo || isGenerating) && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  )}
+                  <span>
+                    {stitchingVideo
+                      ? 'Stitching video segments together...'
+                      : isGenerating
+                        ? `Generating segment ${currentSegment + 1} of ${segments.length}`
+                        : completedCount === 0
+                          ? 'Ready to start generation'
+                          : `${completedCount} segment${completedCount > 1 ? 's' : ''} completed`}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Overall Progress</span>
+                    <span>{completedCount} / {segments.length} segments</span>
+                  </div>
+                  <Progress value={progress} className="h-3" />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isPreparingSegments ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            {canStitch && (
+              <Button onClick={stitchVideos} className="w-full" size="lg" disabled={stitchingVideo}>
+                {stitchingVideo ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Stitching...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-5 w-5" />
+                    Stitch Videos ({completedCount} segments)
+                  </>
+                )}
+              </Button>
+            )}
+
+            <ScrollArea className="h-[600px]">
               <div className="space-y-4">
                 {segments.map((segment, index) => (
                   <div
@@ -374,103 +360,103 @@ export function GenerationProgress({
                 ))}
               </div>
             </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Preview Dialog */}
-        <Dialog open={!!previewSegment} onOpenChange={() => setPreviewSegment(null)}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Segment {previewSegment ? previewSegment.id + 1 : ''} Preview</DialogTitle>
-              <DialogDescription>
-                {previewSegment?.prompt}
-              </DialogDescription>
-            </DialogHeader>
-            {previewSegment?.videoUrl && (
-              <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                <video
-                  src={previewSegment.videoUrl}
-                  controls
-                  autoPlay
-                  className="w-full h-full"
-                />
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Dialog - Hidden when enhancer is open */}
-        <Dialog open={!!editingSegment && !enhancerOpen} onOpenChange={() => setEditingSegment(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Segment {editingSegment ? editingSegment.id + 1 : ''}</DialogTitle>
-              <DialogDescription>
-                Modify the prompt and regenerate the video segment
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Prompt</label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEnhancingSegment(editingSegment)
-                      setEnhancerOpen(true)
-                    }}
-                    className="h-7 gap-1.5"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Enhance with AI
-                  </Button>
-                </div>
-                <Textarea
-                  value={editedPrompt}
-                  onChange={(e) => setEditedPrompt(e.target.value)}
-                  rows={6}
-                  placeholder="Enter video prompt..."
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setEditingSegment(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={saveEditedPrompt}
-                  disabled={
-                    editedPrompt.trim().length === 0 ||
-                    (!!editingSegment?.videoUrl && editedPrompt === editingSegment?.prompt)
-                  }
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {editingSegment?.videoUrl ? 'Regenerate with New Prompt' : 'Generate with This Prompt'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Prompt Enhancer */}
-        {enhancingSegment && enhancerOpen && (
-          <PromptEnhancer
-            open={enhancerOpen}
-            onOpenChange={(open) => {
-              setEnhancerOpen(open)
-              if (!open) {
-                setEnhancingSegment(null)
-              }
-            }}
-            initialPrompt={editedPrompt}
-            context={context}
-            onApply={(enhancedPrompt) => {
-              setEditedPrompt(enhancedPrompt)
-              setEnhancingSegment(null)
-              setEnhancerOpen(false)
-            }}
-          />
+          </>
         )}
-      </div>
-    </>
+      </CardContent>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewSegment} onOpenChange={() => setPreviewSegment(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Segment {previewSegment ? previewSegment.id + 1 : ''} Preview</DialogTitle>
+            <DialogDescription>
+              {previewSegment?.prompt}
+            </DialogDescription>
+          </DialogHeader>
+          {previewSegment?.videoUrl && (
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              <video
+                src={previewSegment.videoUrl}
+                controls
+                autoPlay
+                className="w-full h-full"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog - Hidden when enhancer is open */}
+      <Dialog open={!!editingSegment && !enhancerOpen} onOpenChange={() => setEditingSegment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Segment {editingSegment ? editingSegment.id + 1 : ''}</DialogTitle>
+            <DialogDescription>
+              Modify the prompt and regenerate the video segment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Prompt</label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEnhancingSegment(editingSegment)
+                    setEnhancerOpen(true)
+                  }}
+                  className="h-7 gap-1.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Enhance with AI
+                </Button>
+              </div>
+              <Textarea
+                value={editedPrompt}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                rows={6}
+                placeholder="Enter video prompt..."
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditingSegment(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={saveEditedPrompt}
+                disabled={
+                  editedPrompt.trim().length === 0 ||
+                  (!!editingSegment?.videoUrl && editedPrompt === editingSegment?.prompt)
+                }
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {editingSegment?.videoUrl ? 'Regenerate with New Prompt' : 'Generate with This Prompt'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Prompt Enhancer */}
+      {enhancingSegment && enhancerOpen && (
+        <PromptEnhancer
+          open={enhancerOpen}
+          onOpenChange={(open) => {
+            setEnhancerOpen(open)
+            if (!open) {
+              setEnhancingSegment(null)
+            }
+          }}
+          initialPrompt={editedPrompt}
+          context={context}
+          onApply={(enhancedPrompt) => {
+            setEditedPrompt(enhancedPrompt)
+            setEnhancingSegment(null)
+            setEnhancerOpen(false)
+          }}
+        />
+      )}
+    </Card>
   )
 }
