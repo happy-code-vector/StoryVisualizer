@@ -420,8 +420,8 @@ export function GenerationProgress({
               <Button
                 onClick={saveEditedPrompt}
                 disabled={
-                  !editedPrompt.trim() ||
-                  (editingSegment?.videoUrl && editedPrompt === editingSegment?.prompt)
+                  editedPrompt.trim().length === 0 ||
+                  (!!editingSegment?.videoUrl && editedPrompt === editingSegment?.prompt)
                 }
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
