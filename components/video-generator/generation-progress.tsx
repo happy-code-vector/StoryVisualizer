@@ -20,6 +20,10 @@ interface GenerationProgressProps {
   setVideoUrl: (url: string | null) => void
   onComplete: () => void
   onBack: () => void
+  cachedSegments: any[]
+  setCachedSegments: (segments: any[]) => void
+  lastSettings: any
+  setLastSettings: (settings: any) => void
 }
 
 interface Segment {
@@ -44,7 +48,11 @@ export function GenerationProgress({
   setIsGenerating,
   setVideoUrl,
   onComplete,
-  onBack
+  onBack,
+  cachedSegments,
+  setCachedSegments,
+  lastSettings,
+  setLastSettings
 }: GenerationProgressProps) {
   const [segments, setSegments] = useState<Segment[]>([])
   const [currentSegment, setCurrentSegment] = useState(0)
@@ -56,8 +64,17 @@ export function GenerationProgress({
   const [enhancingSegment, setEnhancingSegment] = useState<Segment | null>(null)
   const [isPreparingSegments, setIsPreparingSegments] = useState(false)
 
+  // Check if settings have changed
+  const settingsChanged = () => {
+    if (!lastSettings) return true
+    return JSON.stringify(settings) !== JSON.stringify(lastSettings)
+  }
+
   useEffect(() => {
-    if (!isGenerating && segments.length === 0) {
+    // Use cached segments if settings haven't changed
+    if (cachedSegments.length > 0 && !settingsChanged()) {
+      setSegments(cachedSegments)
+    } else if (!isGenerating && segments.length === 0) {
       initializeSegments()
     }
   }, [])
@@ -72,7 +89,7 @@ export function GenerationProgress({
       })
 
       const data = await response.json()
-      setSegments(data.segments.map((segment: any, index: number) => {
+      const newSegments = data.segments.map((segment: any, index: number) => {
         // Handle both old format (string) and new format (object with scene info)
         if (typeof segment === 'string') {
           return {
@@ -92,7 +109,11 @@ export function GenerationProgress({
             totalInScene: segment.totalInScene
           }
         }
-      }))
+      })
+
+      setSegments(newSegments)
+      setCachedSegments(newSegments)
+      setLastSettings(settings)
     } catch (error) {
       console.error('Failed to prepare segments:', error)
     } finally {
@@ -101,9 +122,13 @@ export function GenerationProgress({
   }
 
   const generateSegment = async (index: number, prompt: string) => {
-    setSegments(prev => prev.map((seg, idx) =>
-      idx === index ? { ...seg, status: 'generating', error: undefined } : seg
-    ))
+    setSegments(prev => {
+      const updated = prev.map((seg, idx) =>
+        idx === index ? { ...seg, status: 'generating' as const, error: undefined } : seg
+      )
+      setCachedSegments(updated)
+      return updated
+    })
 
     try {
       const response = await fetch('/api/video-generator/generate-segment', {
@@ -122,13 +147,21 @@ export function GenerationProgress({
         throw new Error(data.error || 'Generation failed')
       }
 
-      setSegments(prev => prev.map((seg, idx) =>
-        idx === index ? { ...seg, status: 'completed', videoUrl: data.videoUrl } : seg
-      ))
+      setSegments(prev => {
+        const updated = prev.map((seg, idx) =>
+          idx === index ? { ...seg, status: 'completed' as const, videoUrl: data.videoUrl } : seg
+        )
+        setCachedSegments(updated)
+        return updated
+      })
     } catch (error: any) {
-      setSegments(prev => prev.map((seg, idx) =>
-        idx === index ? { ...seg, status: 'failed', error: error.message || 'Generation failed' } : seg
-      ))
+      setSegments(prev => {
+        const updated = prev.map((seg, idx) =>
+          idx === index ? { ...seg, status: 'failed' as const, error: error.message || 'Generation failed' } : seg
+        )
+        setCachedSegments(updated)
+        return updated
+      })
     }
   }
 
@@ -156,9 +189,13 @@ export function GenerationProgress({
     if (!editingSegment) return
 
     // Update the prompt
-    setSegments(prev => prev.map(seg =>
-      seg.id === editingSegment.id ? { ...seg, prompt: editedPrompt } : seg
-    ))
+    setSegments(prev => {
+      const updated = prev.map(seg =>
+        seg.id === editingSegment.id ? { ...seg, prompt: editedPrompt } : seg
+      )
+      setCachedSegments(updated)
+      return updated
+    })
 
     // Regenerate with new prompt
     await generateSegment(editingSegment.id, editedPrompt)

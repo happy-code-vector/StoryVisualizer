@@ -34,6 +34,8 @@ export default function VideoGeneratorPage() {
   })
   const [isGenerating, setIsGenerating] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [cachedSegments, setCachedSegments] = useState<any[]>([])
+  const [lastSettings, setLastSettings] = useState<any>(null)
 
   const getStepStatus = (stepId: string) => {
     const stepIndex = steps.findIndex(s => s.id === stepId)
@@ -211,6 +213,10 @@ export default function VideoGeneratorPage() {
                     setVideoUrl={setVideoUrl}
                     onComplete={() => setActiveStep('preview')}
                     onBack={() => setActiveStep('settings')}
+                    cachedSegments={cachedSegments}
+                    setCachedSegments={setCachedSegments}
+                    lastSettings={lastSettings}
+                    setLastSettings={setLastSettings}
                   />
                 </div>
               </div>
