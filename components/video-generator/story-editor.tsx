@@ -190,7 +190,7 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
         </CardContent>
       </Card>
 
-      {selectedScene !== null && scenes[selectedScene] && enhancingField && (
+      {selectedScene !== null && scenes[selectedScene] && enhancingField && enhancerOpen && (
         <PromptEnhancer
           open={enhancerOpen}
           onOpenChange={setEnhancerOpen}

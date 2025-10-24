@@ -203,8 +203,8 @@ export function GenerationProgress({
             {stitchingVideo
               ? 'Stitching video segments together...'
               : isGenerating
-              ? `Generating segment ${currentSegment + 1} of ${segments.length}`
-              : 'Ready to start generation'}
+                ? `Generating segment ${currentSegment + 1} of ${segments.length}`
+                : 'Ready to start generation'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -286,7 +286,7 @@ export function GenerationProgress({
                       {segment.sceneTitle && (
                         <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
                           {segment.sceneTitle}
-                          {segment.segmentInScene && segment.totalInScene && 
+                          {segment.segmentInScene && segment.totalInScene &&
                             ` (${segment.segmentInScene}/${segment.totalInScene})`
                           }
                         </span>
@@ -337,7 +337,6 @@ export function GenerationProgress({
                           size="sm"
                           variant="outline"
                           onClick={() => retrySegment(index)}
-                          disabled={segment.status === 'generating'}
                         >
                           <RefreshCw className="mr-2 h-4 w-4" />
                           Regenerate
@@ -381,8 +380,8 @@ export function GenerationProgress({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingSegment} onOpenChange={() => setEditingSegment(null)}>
+      {/* Edit Dialog - Hidden when enhancer is open */}
+      <Dialog open={!!editingSegment && !enhancerOpen} onOpenChange={() => setEditingSegment(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Segment {editingSegment ? editingSegment.id + 1 : ''}</DialogTitle>
@@ -428,15 +427,21 @@ export function GenerationProgress({
       </Dialog>
 
       {/* Prompt Enhancer */}
-      {enhancingSegment && (
+      {enhancingSegment && enhancerOpen && (
         <PromptEnhancer
           open={enhancerOpen}
-          onOpenChange={setEnhancerOpen}
+          onOpenChange={(open) => {
+            setEnhancerOpen(open)
+            if (!open) {
+              setEnhancingSegment(null)
+            }
+          }}
           initialPrompt={editedPrompt}
           context={context}
           onApply={(enhancedPrompt) => {
             setEditedPrompt(enhancedPrompt)
             setEnhancingSegment(null)
+            setEnhancerOpen(false)
           }}
         />
       )}

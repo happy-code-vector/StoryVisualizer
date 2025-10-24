@@ -84,8 +84,8 @@ export function PromptEnhancer({ open, onOpenChange, initialPrompt, onApply, con
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             AI Prompt Enhancer
@@ -95,14 +95,14 @@ export function PromptEnhancer({ open, onOpenChange, initialPrompt, onApply, con
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+        <div className="flex-1 grid grid-cols-2 gap-4 px-6 pb-6 overflow-hidden">
           {/* Chat Section */}
-          <div className="flex flex-col border rounded-lg">
-            <div className="p-3 border-b bg-muted/50">
+          <div className="flex flex-col border rounded-lg overflow-hidden">
+            <div className="p-3 border-b bg-muted/50 flex-shrink-0">
               <h3 className="font-medium text-sm">Chat with AI</h3>
             </div>
             
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-4">
                 {messages.map((message, index) => (
                   <div
@@ -143,7 +143,7 @@ export function PromptEnhancer({ open, onOpenChange, initialPrompt, onApply, con
               </div>
             </ScrollArea>
 
-            <div className="p-3 border-t">
+            <div className="p-3 border-t flex-shrink-0">
               <div className="flex gap-2">
                 <Textarea
                   value={input}
@@ -171,15 +171,15 @@ export function PromptEnhancer({ open, onOpenChange, initialPrompt, onApply, con
           </div>
 
           {/* Preview Section */}
-          <div className="flex flex-col border rounded-lg">
-            <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
+          <div className="flex flex-col border rounded-lg overflow-hidden">
+            <div className="p-3 border-b bg-muted/50 flex items-center justify-between flex-shrink-0">
               <h3 className="font-medium text-sm">Enhanced Prompt</h3>
               <Button variant="ghost" size="sm" onClick={handleReset}>
                 Reset
               </Button>
             </div>
             
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-4">
                 <div>
                   <div className="text-xs text-muted-foreground mb-2">Original:</div>
@@ -207,7 +207,7 @@ export function PromptEnhancer({ open, onOpenChange, initialPrompt, onApply, con
               </div>
             </ScrollArea>
 
-            <div className="p-3 border-t">
+            <div className="p-3 border-t flex-shrink-0">
               <Button onClick={handleApply} className="w-full" size="lg">
                 <Check className="mr-2 h-4 w-4" />
                 Apply Enhanced Prompt
