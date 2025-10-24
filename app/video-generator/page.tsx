@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { IdeaInput } from '@/components/video-generator/idea-input'
 import { StoryEditor } from '@/components/video-generator/story-editor'
 import { VideoSettings } from '@/components/video-generator/video-settings'
@@ -17,6 +17,8 @@ const steps = [
   { id: 'generate', label: 'Generate', icon: Play, description: 'Create videos' },
   { id: 'preview', label: 'Preview', icon: Eye, description: 'View & download' },
 ]
+
+const STORAGE_KEY = 'video-generator-state'
 
 export default function VideoGeneratorPage() {
   const [activeStep, setActiveStep] = useState('idea')
@@ -36,6 +38,49 @@ export default function VideoGeneratorPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [cachedSegments, setCachedSegments] = useState<any[]>([])
   const [lastSettings, setLastSettings] = useState<any>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem(STORAGE_KEY)
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState)
+        setActiveStep(parsed.activeStep || 'idea')
+        setIdea(parsed.idea || '')
+        setStory(parsed.story || '')
+        setScenes(parsed.scenes || [])
+        setContext(parsed.context || null)
+        setSettings(parsed.settings || settings)
+        setVideoUrl(parsed.videoUrl || null)
+        setCachedSegments(parsed.cachedSegments || [])
+        setLastSettings(parsed.lastSettings || null)
+      } catch (error) {
+        console.error('Failed to load saved state:', error)
+      }
+    }
+    setIsLoaded(true)
+  }, [])
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (!isLoaded) return // Don't save until initial load is complete
+
+    const stateToSave = {
+      activeStep,
+      idea,
+      story,
+      scenes,
+      context,
+      settings,
+      videoUrl,
+      cachedSegments,
+      lastSettings,
+      timestamp: Date.now()
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
+  }, [activeStep, idea, story, scenes, context, settings, videoUrl, cachedSegments, lastSettings, isLoaded])
 
   const getStepStatus = (stepId: string) => {
     const stepIndex = steps.findIndex(s => s.id === stepId)
@@ -131,11 +176,25 @@ export default function VideoGeneratorPage() {
           </div>
         </div>
 
-        <div className="p-6 border-t text-xs text-muted-foreground">
+        <div className="p-6 border-t text-xs text-muted-foreground space-y-3">
           <div className="space-y-1">
             <div>💡 Click steps to navigate</div>
             <div>✨ AI-powered generation</div>
+            <div>💾 Auto-saved locally</div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => {
+              if (confirm('Clear all project data? This cannot be undone.')) {
+                localStorage.removeItem(STORAGE_KEY)
+                window.location.reload()
+              }
+            }}
+          >
+            Clear Project
+          </Button>
         </div>
       </div>
 
