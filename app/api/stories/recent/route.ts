@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllStories } from '@/lib/supabase-service'
 
+// Mark this route as dynamic to prevent static rendering issues
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // Get limit from query parameters (default to 3)

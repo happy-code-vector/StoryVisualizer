@@ -19,8 +19,11 @@ export interface User {
 }
 
 // JWT secret - in production, use a strong secret from environment variables
-// For middleware compatibility, we provide a fallback that matches the .env file
-const JWT_SECRET = process.env.JWT_SECRET || 'story-visualizer-secret-key-2025';
+const JWT_SECRET = process.env.JWT_SECRET
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
 
 // Hash a password
 export async function hashPassword(password: string): Promise<string> {
