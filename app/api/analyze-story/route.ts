@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { narrativeEngine } from '@/lib/narrative-engine'
+import { estimateStoryCost } from '@/lib/cost-tracking'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -132,9 +134,59 @@ ${preprocessedStory}`
       }
     }
 
+    // ============================================================================
+    // AURORA STUDIO: Add Narrative Intelligence
+    // ============================================================================
+    
+    // Analyze story structure with narrative engine
+    const storyArc = await narrativeEngine.analyzeStoryArc(analysis.scenes)
+    const tensionCurve = await narrativeEngine.calculateTensionCurve(analysis.scenes)
+    const narrativeSuggestions = await narrativeEngine.generateCoachingSuggestions(analysis.scenes, storyArc)
+    const emotionalPeaks = await narrativeEngine.detectEmotionalPeaks(analysis.scenes)
+    
+    // Apply suggested durations and beat types to scenes
+    const scenesWithMetadata = analysis.scenes.map((scene, index) => {
+      const sceneArc = storyArc.pacing.sceneDistribution.find(s => s.sceneId === scene.id)
+      const sceneTension = tensionCurve.find(t => t.sceneId === scene.id)
+      
+      return {
+        ...scene,
+        suggestedDuration: sceneArc?.suggestedDuration || 5,
+        beatType: sceneArc?.beatType || 'scene',
+        tensionLevel: sceneTension?.tensionLevel || 5,
+        emotionalPeak: sceneTension?.emotionalPeak || false
+      }
+    })
+    
+    // Estimate costs for this story
+    const costEstimate = await estimateStoryCost(
+      analysis.characters.length,
+      analysis.scenes.length,
+      {
+        includeVideos: false, // User will choose later
+        includeVoice: false,  // User will choose later
+        avgSceneDuration: storyArc.pacing.totalDuration / analysis.scenes.length
+      }
+    )
+
     return NextResponse.json({
       ...analysis,
-      title: title || "Untitled Story"
+      scenes: scenesWithMetadata,
+      title: title || "Untitled Story",
+      // Aurora Studio enhancements
+      storyArc,
+      tensionCurve,
+      narrativeSuggestions,
+      emotionalPeaks,
+      costEstimate,
+      metadata: {
+        totalDuration: storyArc.pacing.totalDuration,
+        acts: {
+          act1: storyArc.acts.act1.scenes.length,
+          act2: storyArc.acts.act2.scenes.length,
+          act3: storyArc.acts.act3.scenes.length
+        }
+      }
     })
   } catch (error) {
     console.error("Error analyzing story with OpenAI:", error)

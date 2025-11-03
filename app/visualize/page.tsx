@@ -89,6 +89,14 @@ export default function VisualizePage() {
       setCharacters(processedCharacters)
       setScenes(processedScenes)
 
+      // Log Aurora Studio enhancements
+      if (storyAnalysis.storyArc) {
+        console.log('📖 Story Arc:', storyAnalysis.storyArc)
+        console.log('📈 Tension Curve:', storyAnalysis.tensionCurve)
+        console.log('💡 Narrative Suggestions:', storyAnalysis.narrativeSuggestions)
+        console.log('💰 Cost Estimate:', storyAnalysis.costEstimate)
+      }
+
       // Generate images for characters and scenes
       generateImages(processedCharacters, processedScenes)
     }
