@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Loader2, Sparkles, FileText, Lightbulb } from 'lucide-react'
+import { Loader2, Sparkles, FileText, Lightbulb, Clock } from 'lucide-react'
 import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Badge } from '@/components/ui/badge'
 
 interface IdeaInputProps {
   idea: string
@@ -15,9 +17,18 @@ interface IdeaInputProps {
   onNext: () => void
 }
 
+const DURATION_PRESETS = [
+  { value: 1, label: '1 min', description: 'Quick clip' },
+  { value: 2, label: '2 min', description: 'Short video' },
+  { value: 3, label: '3 min', description: 'Standard' },
+  { value: 5, label: '5 min', description: 'Extended' },
+  { value: 10, label: '10 min', description: 'Long form' },
+]
+
 export function IdeaInput({ idea, setIdea, story, setStory, onNext }: IdeaInputProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedOption, setSelectedOption] = useState<'idea' | 'story' | null>(null)
+  const [targetDuration, setTargetDuration] = useState(2) // Default 2 minutes
 
   const generateStory = async () => {
     if (!idea.trim()) return
@@ -27,7 +38,10 @@ export function IdeaInput({ idea, setIdea, story, setStory, onNext }: IdeaInputP
       const response = await fetch('/api/video-generator/generate-story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea })
+        body: JSON.stringify({ 
+          idea,
+          targetDuration // Pass target duration to AI
+        })
       })
 
       const data = await response.json()
@@ -131,18 +145,68 @@ export function IdeaInput({ idea, setIdea, story, setStory, onNext }: IdeaInputP
           </div>
 
           <Card>
-            <CardContent className="pt-6 space-y-4">
+            <CardContent className="pt-6 space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="idea">Video Idea</Label>
                 <Textarea
                   id="idea"
-                  placeholder="Example: A 5-minute documentary about the journey of a coffee bean from farm to cup, showing the entire process...&#10;&#10;Tip: You can mention duration in your idea (e.g., '3-minute video', '10 minutes long') or let AI decide."
+                  placeholder="Example: A documentary about the journey of a coffee bean from farm to cup, showing the entire process..."
                   value={idea}
                   onChange={(e) => setIdea(e.target.value)}
-                  rows={12}
+                  rows={8}
                   className="resize-none"
                   autoFocus
                 />
+              </div>
+
+              {/* Duration Selection */}
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <Label className="text-base font-semibold">Target Video Duration</Label>
+                  <Badge variant="secondary" className="ml-auto">
+                    {targetDuration} {targetDuration === 1 ? 'minute' : 'minutes'}
+                  </Badge>
+                </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  Choose how long you want your final video to be. AI will generate appropriate content.
+                </p>
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.value}
+                      variant={targetDuration === preset.value ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTargetDuration(preset.value)}
+                      className="flex-1 min-w-[100px]"
+                    >
+                      <div className="text-center">
+                        <div className="font-semibold">{preset.label}</div>
+                        <div className="text-xs opacity-70">{preset.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Custom Slider */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Custom Duration</Label>
+                  <Slider
+                    value={[targetDuration]}
+                    onValueChange={(value) => setTargetDuration(value[0])}
+                    min={1}
+                    max={15}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1 min</span>
+                    <span>15 min</span>
+                  </div>
+                </div>
               </div>
 
               <Button
@@ -154,12 +218,12 @@ export function IdeaInput({ idea, setIdea, story, setStory, onNext }: IdeaInputP
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Story...
+                    Generating {targetDuration}-Minute Story...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Story from Idea
+                    Generate {targetDuration}-Minute Story
                   </>
                 )}
               </Button>

@@ -28,8 +28,15 @@ export function VideoSettings({ settings, setSettings, story, onNext, onBack }: 
     setSettings({ ...settings, [key]: value })
   }
 
-  const estimatedSegments = Math.ceil((settings.duration * 60) / settings.segmentLength)
-  const estimatedCost = estimatedSegments * 0.05 // Example cost per segment
+  // Calculate actual segments and cost
+  const totalSeconds = settings.duration * 60
+  const estimatedSegments = Math.ceil(totalSeconds / settings.segmentLength)
+  
+  // Aurora cost calculation
+  // Each segment: 1 image generation ($0.02) + video generation ($0.05/sec)
+  const imageGenerationCost = estimatedSegments * 0.02 // $0.02 per image
+  const videoGenerationCost = totalSeconds * 0.05 // $0.05 per second
+  const estimatedCost = imageGenerationCost + videoGenerationCost
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
