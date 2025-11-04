@@ -111,9 +111,10 @@ export default function StoryVisualizerInput() {
 
       sessionStorage.setItem('storyAnalysis', JSON.stringify(payload))
       setProcessing(false)
+      setProgress(100)
 
-      // Navigate to the visualize page
-      router.push('/visualize')
+      // Navigate to compose page for editing (or visualize directly)
+      router.push('/compose')
     } catch (error) {
       console.error("[OpenAI] Error analyzing story:", error)
       setProcessing(false)

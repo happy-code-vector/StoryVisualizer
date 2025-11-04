@@ -11,6 +11,7 @@ import SceneCard from "@/components/SceneCard"
 import { NarrativeCoach } from "@/components/NarrativeCoach"
 import { StoryArcVisualization } from "@/components/StoryArcVisualization"
 import { CostEstimateCard } from "@/components/CostEstimateCard"
+import { TimelineEditor } from "@/components/TimelineEditor"
 
 interface Character {
   name: string
@@ -48,6 +49,12 @@ interface StoryAnalysis {
   characterModel?: string
   sceneModel?: string
   videoModel?: string
+  storyArc?: any
+  tensionCurve?: any
+  narrativeSuggestions?: any
+  costEstimate?: any
+  emotionalPeaks?: number[]
+  metadata?: any
 }
 
 export default function VisualizePage() {
@@ -512,6 +519,21 @@ export default function VisualizePage() {
                 includeVoice={false}
               />
             )}
+
+            {/* Timeline Editor */}
+            <TimelineEditor
+              scenes={scenes}
+              onReorder={(newScenes) => setScenes(newScenes)}
+              onUpdateDuration={(sceneId, duration) => {
+                setScenes(prev => prev.map(s => 
+                  s.id === sceneId ? { ...s, duration } : s
+                ))
+              }}
+              onRegenerateScene={(sceneId) => {
+                console.log('Regenerate scene:', sceneId)
+                alert('Scene regeneration will be implemented soon!')
+              }}
+            />
           </div>
         )}
 

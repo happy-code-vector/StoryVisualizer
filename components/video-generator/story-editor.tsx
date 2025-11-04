@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react'
 import { PromptEnhancer } from './prompt-enhancer'
+import { AuroraInsights } from './aurora-insights'
 
 interface Scene {
   id: number
@@ -50,8 +51,44 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
       })
 
       const data = await response.json()
-      setScenes(data.scenes)
-      setContext(data.context)
+      
+      // AURORA: Add narrative intelligence
+      if (data.scenes && data.scenes.length > 0) {
+        const narrativeResponse = await fetch('/api/narrative-analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            scenes: data.scenes.map((s: any, i: number) => ({
+              id: i + 1,
+              title: `Scene ${i + 1}`,
+              description: s.text || s.visualPrompt || '',
+              characters: []
+            })),
+            action: 'full_analysis'
+          })
+        })
+        
+        const narrativeData = await narrativeResponse.json()
+        
+        // Apply narrative metadata to scenes
+        const enhancedScenes = data.scenes.map((scene: any, i: number) => ({
+          ...scene,
+          beatType: narrativeData.arc?.pacing?.sceneDistribution?.[i]?.beatType,
+          tensionLevel: narrativeData.tensionCurve?.[i]?.tensionLevel,
+          suggestedDuration: narrativeData.arc?.pacing?.sceneDistribution?.[i]?.suggestedDuration
+        }))
+        
+        setScenes(enhancedScenes)
+        setContext({
+          ...data.context,
+          storyArc: narrativeData.arc,
+          narrativeSuggestions: narrativeData.suggestions
+        })
+      } else {
+        setScenes(data.scenes)
+        setContext(data.context)
+      }
+      
       if (data.scenes.length > 0) {
         setSelectedScene(0)
       }
@@ -71,8 +108,14 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
   const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 0)
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      <Card className="md:col-span-1">
+    <div className="space-y-6">
+      {/* Aurora Insights */}
+      {context?.storyArc && (
+        <AuroraInsights context={context} scenes={scenes} />
+      )}
+      
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="md:col-span-1">
         <CardHeader>
           <CardTitle>Scenes ({scenes.length})</CardTitle>
           <CardDescription>
@@ -186,18 +229,19 @@ export function StoryEditor({ story, setStory, scenes, setScenes, context, setCo
         </CardContent>
       </Card>
 
-      {selectedScene !== null && scenes[selectedScene] && enhancingField && enhancerOpen && (
-        <PromptEnhancer
-          open={enhancerOpen}
-          onOpenChange={setEnhancerOpen}
-          initialPrompt={scenes[selectedScene][enhancingField]}
-          context={context}
-          onApply={(enhancedPrompt) => {
-            updateScene(scenes[selectedScene].id, enhancingField, enhancedPrompt)
-            setEnhancingField(null)
-          }}
-        />
-      )}
+        {selectedScene !== null && scenes[selectedScene] && enhancingField && enhancerOpen && (
+          <PromptEnhancer
+            open={enhancerOpen}
+            onOpenChange={setEnhancerOpen}
+            initialPrompt={scenes[selectedScene][enhancingField]}
+            context={context}
+            onApply={(enhancedPrompt) => {
+              updateScene(scenes[selectedScene].id, enhancingField, enhancedPrompt)
+              setEnhancingField(null)
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }
