@@ -8,6 +8,9 @@ import { Progress } from "@/components/ui/progress"
 import { Sparkles, Users, BookOpen, Download, ArrowLeft, Play, Video, Image } from "lucide-react"
 import CharacterCard from "@/components/CharacterCard"
 import SceneCard from "@/components/SceneCard"
+import { NarrativeCoach } from "@/components/NarrativeCoach"
+import { StoryArcVisualization } from "@/components/StoryArcVisualization"
+import { CostEstimateCard } from "@/components/CostEstimateCard"
 
 interface Character {
   name: string
@@ -473,6 +476,43 @@ export default function VisualizePage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Aurora Studio: Narrative Intelligence Display */}
+        {!processing.isProcessing && storyAnalysis?.storyArc && (
+          <div className="space-y-8 mb-8">
+            {/* Narrative Coach */}
+            {storyAnalysis.narrativeSuggestions && storyAnalysis.narrativeSuggestions.length > 0 && (
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-accent" />
+                    Narrative Coach
+                  </CardTitle>
+                  <CardDescription>AI-powered suggestions to improve your story</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <NarrativeCoach suggestions={storyAnalysis.narrativeSuggestions} />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Story Arc Visualization */}
+            <StoryArcVisualization 
+              storyArc={storyAnalysis.storyArc}
+              tensionCurve={storyAnalysis.tensionCurve || []}
+              totalScenes={scenes.length}
+            />
+
+            {/* Cost Estimate */}
+            {storyAnalysis.costEstimate && (
+              <CostEstimateCard 
+                estimate={storyAnalysis.costEstimate}
+                includeVideos={false}
+                includeVoice={false}
+              />
+            )}
+          </div>
         )}
 
         {/* Results Display */}

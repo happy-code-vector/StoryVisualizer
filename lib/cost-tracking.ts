@@ -113,7 +113,7 @@ export class CostTracker {
     generateVideos: boolean = false,
     generateVoice: boolean = false,
     avgSceneDuration: number = 5,
-    usePremiun VoiceProvider: boolean = false
+    usePremiumVoiceProvider: boolean = false
   ): Promise<CostEstimate> {
     // Character images
     const characterImagesCost = numCharacters * COST_CONSTANTS.IMAGE_COST_PER_UNIT

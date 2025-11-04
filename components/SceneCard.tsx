@@ -16,6 +16,9 @@ interface Scene {
   duration: number
   audioElements: string[]
   imageUrl?: string
+  beatType?: string
+  tensionLevel?: number
+  suggestedDuration?: number
 }
 
 interface SceneCardProps {
@@ -48,11 +51,25 @@ export default function SceneCard({ scene, index, isLast }: SceneCardProps) {
               )}
 
               {/* Scene number overlay */}
-              <div className="absolute top-4 left-4">
+              <div className="absolute top-4 left-4 flex gap-2">
                 <Badge className="bg-black/80 text-white border-0 text-sm">
                   Scene {scene.id}
                 </Badge>
+                {scene.beatType && scene.beatType !== 'scene' && (
+                  <Badge className="bg-accent/90 text-accent-foreground border-0 text-sm capitalize">
+                    {scene.beatType.replace('_', ' ')}
+                  </Badge>
+                )}
               </div>
+
+              {/* Tension level indicator */}
+              {scene.tensionLevel !== undefined && (
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-black/80 text-white border-0 text-sm">
+                    Tension: {scene.tensionLevel}/10
+                  </Badge>
+                </div>
+              )}
 
               {/* View details overlay */}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
