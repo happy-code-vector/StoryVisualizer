@@ -48,19 +48,12 @@ export function VideoSettings({ settings, setSettings, story, onNext, onBack }: 
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Target Duration (minutes)</Label>
-            <div className="flex items-center gap-4">
-              <Slider
-                value={[settings.duration]}
-                onValueChange={([value]) => updateSetting('duration', value)}
-                min={1}
-                max={60}
-                step={1}
-                className="flex-1"
-              />
-              <span className="w-12 text-right font-medium">{settings.duration}m</span>
-            </div>
+          <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
+            <Label className="text-sm text-muted-foreground">Target Duration (set in Step 1)</Label>
+            <div className="text-2xl font-bold">{settings.duration} {settings.duration === 1 ? 'minute' : 'minutes'}</div>
+            <p className="text-xs text-muted-foreground">
+              Duration was set when you generated your story. To change it, go back to Step 1.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -186,11 +179,30 @@ export function VideoSettings({ settings, setSettings, story, onNext, onBack }: 
               <span className="font-semibold">Estimated Cost</span>
               <span className="font-bold text-lg">${estimatedCost.toFixed(2)}</span>
             </div>
+            
+            {/* Cost Breakdown */}
+            <div className="text-xs text-muted-foreground space-y-1 pt-2">
+              <div className="flex justify-between">
+                <span>• Image generation ({estimatedSegments} images)</span>
+                <span>${imageGenerationCost.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>• Video generation ({totalSeconds}s @ $0.05/s)</span>
+                <span>${videoGenerationCost.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-muted p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Generation will take approximately {Math.ceil(estimatedSegments * 0.5)} minutes.
+          <div className="bg-muted p-4 rounded-lg space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Estimated Time:</span>
+              <span className="font-medium">{Math.ceil(estimatedSegments * 0.5)} minutes</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Render Minutes:</span>
+              <span className="font-medium">{(totalSeconds / 60).toFixed(1)} min</span>
+            </div>
+            <p className="text-xs text-muted-foreground pt-2">
               You can monitor progress in the next step.
             </p>
           </div>
