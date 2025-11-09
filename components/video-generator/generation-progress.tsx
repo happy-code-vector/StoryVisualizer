@@ -29,6 +29,9 @@ interface GenerationProgressProps {
 interface Segment {
   id: number
   prompt: string
+  imagePrompt?: string
+  previewImageUrl?: string
+  imageStatus?: 'pending' | 'generating' | 'completed' | 'failed'
   status: 'pending' | 'generating' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
@@ -63,6 +66,8 @@ export function GenerationProgress({
   const [enhancerOpen, setEnhancerOpen] = useState(false)
   const [enhancingSegment, setEnhancingSegment] = useState<Segment | null>(null)
   const [isPreparingSegments, setIsPreparingSegments] = useState(false)
+  const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false)
+  const [previewProgress, setPreviewProgress] = useState(0)
 
   // Check if settings have changed
   const settingsChanged = () => {
@@ -95,12 +100,16 @@ export function GenerationProgress({
           return {
             id: index,
             prompt: segment,
+            imagePrompt: segment,
+            imageStatus: 'pending' as const,
             status: 'pending' as const
           }
         } else {
           return {
             id: index,
             prompt: segment.prompt,
+            imagePrompt: segment.imagePrompt || segment.prompt,
+            imageStatus: 'pending' as const,
             status: 'pending' as const,
             sceneId: segment.sceneId,
             sceneIndex: segment.sceneIndex,
@@ -114,10 +123,76 @@ export function GenerationProgress({
       setSegments(newSegments)
       setCachedSegments(newSegments)
       setLastSettings(settings)
+      
+      // After segments are prepared, generate preview images
+      await generatePreviewImages(newSegments)
     } catch (error) {
       console.error('Failed to prepare segments:', error)
     } finally {
       setIsPreparingSegments(false)
+    }
+  }
+
+  const generatePreviewImages = async (segmentsToProcess: Segment[]) => {
+    setIsGeneratingPreviews(true)
+    setPreviewProgress(0)
+
+    try {
+      // Process images in batches to show progress
+      const BATCH_SIZE = 5
+      const batches = []
+      
+      for (let i = 0; i < segmentsToProcess.length; i += BATCH_SIZE) {
+        batches.push(segmentsToProcess.slice(i, i + BATCH_SIZE))
+      }
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]
+        
+        // Mark batch as generating
+        setSegments(prev => {
+          const updated = prev.map(seg => {
+            const inBatch = batch.find(b => b.id === seg.id)
+            return inBatch ? { ...seg, imageStatus: 'generating' as const } : seg
+          })
+          setCachedSegments(updated)
+          return updated
+        })
+
+        // Generate images for this batch
+        const response = await fetch('/api/video-generator/generate-preview-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ segments: batch })
+        })
+
+        const data = await response.json()
+        
+        // Update segments with generated images
+        setSegments(prev => {
+          const updated = prev.map(seg => {
+            const imageResult = data.images?.find((img: any) => img.segmentId === seg.id)
+            if (imageResult) {
+              return {
+                ...seg,
+                previewImageUrl: imageResult.imageUrl,
+                imageStatus: imageResult.status as 'completed' | 'failed'
+              }
+            }
+            return seg
+          })
+          setCachedSegments(updated)
+          return updated
+        })
+
+        // Update progress
+        const completedCount = (batchIndex + 1) * BATCH_SIZE
+        setPreviewProgress(Math.min((completedCount / segmentsToProcess.length) * 100, 100))
+      }
+    } catch (error) {
+      console.error('Failed to generate preview images:', error)
+    } finally {
+      setIsGeneratingPreviews(false)
     }
   }
 
@@ -292,6 +367,20 @@ export function GenerationProgress({
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>Analyzing story and preparing video segments...</span>
               </div>
+            ) : isGeneratingPreviews ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Generating preview images for segments (batch processing)...</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Preview Generation Progress</span>
+                    <span>{Math.round(previewProgress)}%</span>
+                  </div>
+                  <Progress value={previewProgress} className="h-2" />
+                </div>
+              </div>
             ) : (
               <>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -322,9 +411,12 @@ export function GenerationProgress({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isPreparingSegments ? (
-          <div className="flex items-center justify-center py-12">
+        {isPreparingSegments || isGeneratingPreviews ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">
+              {isPreparingSegments ? 'Preparing segments...' : 'Generating preview images...'}
+            </p>
           </div>
         ) : (
           <>
@@ -379,6 +471,18 @@ export function GenerationProgress({
                                       {segment.segmentInScene}/{segment.totalInScene}
                                     </span>
                                   )}
+                                  {/* Image preview status badge */}
+                                  {segment.imageStatus === 'generating' && (
+                                    <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 flex items-center gap-1">
+                                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                                      Preview
+                                    </span>
+                                  )}
+                                  {segment.imageStatus === 'completed' && segment.previewImageUrl && (
+                                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-500">
+                                      Preview Ready
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -387,15 +491,34 @@ export function GenerationProgress({
                               {segment.prompt}
                             </p>
 
-                            {segment.videoUrl && (
-                              <div className="aspect-video bg-black rounded-md overflow-hidden">
+                            {/* Preview Image or Video */}
+                            <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
+                              {segment.videoUrl ? (
                                 <video
                                   src={segment.videoUrl}
                                   controls
                                   className="w-full h-full"
                                 />
-                              </div>
-                            )}
+                              ) : segment.previewImageUrl ? (
+                                <img
+                                  src={segment.previewImageUrl}
+                                  alt={`Preview for segment ${segment.id + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : segment.imageStatus === 'generating' ? (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                              ) : segment.imageStatus === 'failed' ? (
+                                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                                  Preview unavailable
+                                </div>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                                  No preview
+                                </div>
+                              )}
+                            </div>
 
                             {segment.error && (
                               <p className="text-sm text-red-500">{segment.error}</p>

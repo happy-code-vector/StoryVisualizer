@@ -28,8 +28,10 @@ export async function POST(request: NextRequest) {
 
         if (segmentsPerScene === 1) {
           // Single segment - use the scene's visual prompt directly with context reinforcement
+          const videoPrompt = `${scene.visualPrompt}. Time period: ${storyContext.timePeriod}. Location: ${storyContext.location}.`
           allSegments.push({
-            prompt: `${scene.visualPrompt}. Time period: ${storyContext.timePeriod}. Location: ${storyContext.location}.`,
+            prompt: videoPrompt,
+            imagePrompt: videoPrompt, // Use same prompt for preview image
             sceneId: scene.id,
             sceneIndex: sceneIndex,
             sceneTitle: `Scene ${sceneIndex + 1}`,
@@ -77,11 +79,18 @@ Example BAD: "Cinematic shot of a man in a beautiful palace" (no era specified, 
 You MUST respond with valid JSON only. Use this exact structure:
 {
   "segments": [
-    "detailed concrete prompt for segment 1 matching ${storyContext.timePeriod} in ${storyContext.location}",
-    "detailed concrete prompt for segment 2 matching ${storyContext.timePeriod} in ${storyContext.location}",
-    ...
+    {
+      "videoPrompt": "detailed concrete prompt for video segment 1",
+      "imagePrompt": "detailed concrete prompt for preview image 1 (single frame, no motion)"
+    },
+    {
+      "videoPrompt": "detailed concrete prompt for video segment 2",
+      "imagePrompt": "detailed concrete prompt for preview image 2 (single frame, no motion)"
+    }
   ]
-}`
+}
+
+For imagePrompt: Create a static frame description without motion or camera movement, suitable for image generation.`
               },
               {
                 role: 'user',
@@ -107,8 +116,17 @@ Create ${segmentsPerScene} progressive video prompts that STRICTLY MAINTAIN cons
 
           // Create segment objects with the AI-generated prompts
           for (let i = 0; i < segmentsPerScene; i++) {
+            const segmentData = segmentPrompts[i]
+            const videoPrompt = typeof segmentData === 'string' 
+              ? segmentData 
+              : (segmentData?.videoPrompt || `${scene.visualPrompt}. Part ${i + 1}. ${settings.style} style`)
+            const imagePrompt = typeof segmentData === 'object' && segmentData?.imagePrompt
+              ? segmentData.imagePrompt
+              : videoPrompt
+
             allSegments.push({
-              prompt: segmentPrompts[i] || `${scene.visualPrompt}. Part ${i + 1}. ${settings.style} style`,
+              prompt: videoPrompt,
+              imagePrompt: imagePrompt,
               sceneId: scene.id,
               sceneIndex: sceneIndex,
               sceneTitle: `Scene ${sceneIndex + 1}`,
