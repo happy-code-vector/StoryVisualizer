@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban, Star, Database, BookOpen, Calendar, Eye, Info } from "lucide-react"
+import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban, Star, Database, BookOpen, Calendar, Eye, Info, Image, Video, Upload, Sparkles, Download, Loader2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { getCookie } from '@/lib/cookie-utils'
@@ -71,6 +72,21 @@ export default function AdminDashboard() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
   const [isTokenVerified, setIsTokenVerified] = useState(false)
+
+  // Test generation states
+  const [testTab, setTestTab] = useState<'image' | 'video'>('image')
+  const [imagePrompt, setImagePrompt] = useState('')
+  const [imageModelType, setImageModelType] = useState<'character' | 'scene'>('scene')
+  const [imageModelName, setImageModelName] = useState('')
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+
+  const [videoPrompt, setVideoPrompt] = useState('')
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null)
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null)
+  const [videoError, setVideoError] = useState<string | null>(null)
 
   // Check if user has admin access
   useEffect(() => {
@@ -481,6 +497,107 @@ export default function AdminDashboard() {
     return sentences.join('. ') + (sentences.length < story.split('. ').length ? '...' : '');
   }
 
+  // Handle image generation
+  const handleImageGeneration = async () => {
+    if (!imagePrompt.trim() || !imageModelName) {
+      setImageError('Please provide a prompt and select a model')
+      return
+    }
+
+    setIsGeneratingImage(true)
+    setImageError(null)
+    setGeneratedImage(null)
+
+    try {
+      const token = getCookie('authToken')
+
+      // Use the new test API for image generation
+      const response = await fetch('/api/admin/test/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          modelName: imageModelName,
+          type: imageModelType
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Image generation failed')
+      }
+
+      setGeneratedImage(data.imageUrl)
+    } catch (error: any) {
+      setImageError(error.message || 'Failed to generate image')
+    } finally {
+      setIsGeneratingImage(false)
+    }
+  }
+
+  // Handle reference image file selection
+  const handleReferenceImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setReferenceImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Clear reference image
+  const clearReferenceImage = () => {
+    setReferenceImagePreview(null)
+  }
+
+  // Handle video generation (using Kling model)
+  const handleVideoGeneration = async () => {
+    if (!videoPrompt.trim()) {
+      setVideoError('Please provide a prompt')
+      return
+    }
+
+    setIsGeneratingVideo(true)
+    setVideoError(null)
+    setGeneratedVideo(null)
+
+    try {
+      const token = getCookie('authToken')
+
+      // Use the new test API for video generation with Kling
+      const response = await fetch('/api/admin/test/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          prompt: videoPrompt,
+          referenceImageUrl: referenceImagePreview || undefined
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Video generation failed')
+      }
+
+      setGeneratedVideo(data.videoUrl)
+    } catch (error: any) {
+      setVideoError(error.message || 'Failed to generate video')
+    } finally {
+      setIsGeneratingVideo(false)
+    }
+  }
+
   // Filter out root users and current user from the display
   const filteredUsers = users.filter(u => u.role !== 'root' && u.id !== user?.id)
   
@@ -556,7 +673,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="models" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="models" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             Model Management
@@ -568,6 +685,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="stories" className="flex items-center gap-2">
             <Database className="w-4 h-4" />
             Story Management
+          </TabsTrigger>
+          <TabsTrigger value="test" className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            Test Generation
           </TabsTrigger>
         </TabsList>
 
@@ -928,6 +1049,322 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="test" className="mt-6">
+          <Tabs value={testTab} onValueChange={(v) => setTestTab(v as 'image' | 'video')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="image" className="flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                Image Generation
+              </TabsTrigger>
+              <TabsTrigger value="video" className="flex items-center gap-2">
+                <Video className="w-4 h-4" />
+                Video Generation
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Image Generation Test */}
+            <TabsContent value="image" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Input Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Generate Image</CardTitle>
+                    <CardDescription>Test image generation with different models and prompts</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="imageModelType">Image Type</Label>
+                      <Select
+                        value={imageModelType}
+                        onValueChange={(value: 'character' | 'scene') => {
+                          setImageModelType(value)
+                          // Update model name when type changes
+                          const characterModels = models.filter(m => m.type === 'character')
+                          const sceneModels = models.filter(m => m.type === 'scene')
+                          const availableModels = value === 'character' ? characterModels : sceneModels
+                          const defaultModel = availableModels.find(m => m.isDefault) || availableModels[0]
+                          if (defaultModel) setImageModelName(defaultModel.name)
+                        }}
+                      >
+                        <SelectTrigger id="imageModelType">
+                          <SelectValue placeholder="Select image type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="scene">Scene Image</SelectItem>
+                          <SelectItem value="character">Character Portrait</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="imageModel">Model</Label>
+                      <Select
+                        value={imageModelName}
+                        onValueChange={setImageModelName}
+                      >
+                        <SelectTrigger id="imageModel">
+                          <SelectValue placeholder="Select a model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(imageModelType === 'character'
+                            ? models.filter(m => m.type === 'character')
+                            : models.filter(m => m.type === 'scene')
+                          ).map((model) => (
+                            <SelectItem key={model.id} value={model.name}>
+                              {model.name} {model.isDefault && '(Default)'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="imagePrompt">Prompt</Label>
+                      <Textarea
+                        id="imagePrompt"
+                        placeholder="Describe what you want to generate..."
+                        value={imagePrompt}
+                        onChange={(e) => setImagePrompt(e.target.value)}
+                        rows={5}
+                        className="resize-none"
+                      />
+                    </div>
+
+                    {imageError && (
+                      <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                        {imageError}
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleImageGeneration}
+                      disabled={isGeneratingImage || !imagePrompt.trim()}
+                      className="w-full"
+                    >
+                      {isGeneratingImage ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate Image
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Result Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Result</CardTitle>
+                    <CardDescription>Generated image will appear here</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isGeneratingImage ? (
+                      <div className="aspect-square flex items-center justify-center border rounded-lg bg-muted">
+                        <div className="text-center">
+                          <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">Generating image...</p>
+                        </div>
+                      </div>
+                    ) : generatedImage ? (
+                      <div className="space-y-4">
+                        <div className="aspect-square border rounded-lg overflow-hidden">
+                          <img
+                            src={generatedImage}
+                            alt="Generated image"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              const link = document.createElement('a')
+                              link.href = generatedImage
+                              link.download = `generated-image-${Date.now()}.png`
+                              link.click()
+                            }}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setGeneratedImage(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-square flex items-center justify-center border rounded-lg bg-muted">
+                        <div className="text-center text-muted-foreground">
+                          <Image className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>No image generated yet</p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Video Generation Test */}
+            <TabsContent value="video" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Input Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Generate Video</CardTitle>
+                    <CardDescription>Test video generation using Kling AI model (supports text-to-video and image-to-video)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="videoPrompt">Prompt</Label>
+                      <Textarea
+                        id="videoPrompt"
+                        placeholder="Describe the video you want to generate..."
+                        value={videoPrompt}
+                        onChange={(e) => setVideoPrompt(e.target.value)}
+                        rows={4}
+                        className="resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="referenceImage">Reference Image (Optional)</Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Upload an image to use image-to-video mode. Leave empty for text-to-video mode.
+                      </p>
+                      <div className="border-2 border-dashed rounded-lg p-4">
+                        {referenceImagePreview ? (
+                          <div className="space-y-2">
+                            <img
+                              src={referenceImagePreview}
+                              alt="Reference image preview"
+                              className="w-full h-40 object-cover rounded"
+                            />
+                            <Button
+                              variant="outline"
+                                size="sm"
+                                onClick={clearReferenceImage}
+                                className="w-full"
+                              >
+                                <X className="w-4 h-4 mr-2" />
+                                Remove Image
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Upload a reference image
+                              </p>
+                              <Input
+                                id="referenceImage"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleReferenceImageChange}
+                                className="max-w-xs mx-auto"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {videoError && (
+                      <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                        {videoError}
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleVideoGeneration}
+                      disabled={isGeneratingVideo || !videoPrompt.trim()}
+                      className="w-full"
+                    >
+                      {isGeneratingVideo ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate Video
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Result Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Result</CardTitle>
+                    <CardDescription>Generated video will appear here</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isGeneratingVideo ? (
+                      <div className="aspect-video flex items-center justify-center border rounded-lg bg-muted">
+                        <div className="text-center">
+                          <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">Generating video...</p>
+                          <p className="text-xs text-muted-foreground mt-2">This may take a minute</p>
+                        </div>
+                      </div>
+                    ) : generatedVideo ? (
+                      <div className="space-y-4">
+                        <div className="aspect-video border rounded-lg overflow-hidden">
+                          <video
+                            src={generatedVideo}
+                            controls
+                            className="w-full h-full"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              const link = document.createElement('a')
+                              link.href = generatedVideo
+                              link.download = `generated-video-${Date.now()}.mp4`
+                              link.click()
+                            }}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setGeneratedVideo(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-video flex items-center justify-center border rounded-lg bg-muted">
+                        <div className="text-center text-muted-foreground">
+                          <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>No video generated yet</p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
       
