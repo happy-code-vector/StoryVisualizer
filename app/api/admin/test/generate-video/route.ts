@@ -4,10 +4,19 @@ import { createTestResult } from '@/lib/test-results-db'
 interface TestVideoRequest {
   prompt: string
   referenceImageUrls?: string[]
+  duration?: number
+  aspectRatio?: string
+  generateAudio?: boolean
 }
 
 // Test video generation using Kling model with best quality settings
-async function generateTestVideo(prompt: string, referenceImageUrls?: string[]): Promise<string> {
+async function generateTestVideo(
+  prompt: string,
+  referenceImageUrls?: string[],
+  duration?: number,
+  aspectRatio?: string,
+  generateAudio?: boolean
+): Promise<string> {
   const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY || process.env.FAL_KEY
 
   if (!FAL_AI_API_KEY) {
@@ -33,6 +42,21 @@ async function generateTestVideo(prompt: string, referenceImageUrls?: string[]):
       if (referenceImageUrls.length > 1) {
         requestBody.image_urls = referenceImageUrls
       }
+    }
+
+    // Add duration if provided
+    if (duration) {
+      requestBody.duration = duration.toString()
+    }
+
+    // Add aspect ratio if provided
+    if (aspectRatio) {
+      requestBody.aspect_ratio = aspectRatio
+    }
+
+    // Add generate_audio option if provided
+    if (generateAudio !== undefined) {
+      requestBody.generate_audio = generateAudio
     }
 
     const response = await fetch(endpoint, {
@@ -74,7 +98,7 @@ async function generateTestVideo(prompt: string, referenceImageUrls?: string[]):
 export async function POST(request: NextRequest) {
   try {
     const body: TestVideoRequest = await request.json()
-    const { prompt, referenceImageUrls } = body
+    const { prompt, referenceImageUrls, duration, aspectRatio, generateAudio } = body
 
     if (!prompt) {
       return NextResponse.json(
@@ -83,9 +107,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[TestVideo] Video generation request received${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}`)
+    console.log(`[TestVideo] Video generation request received${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}${duration ? ` with ${duration}s duration` : ''}${aspectRatio ? ` with ${aspectRatio} aspect ratio` : ''}${generateAudio ? ` with audio generation` : ''}`)
 
-    const videoUrl = await generateTestVideo(prompt, referenceImageUrls)
+    const videoUrl = await generateTestVideo(prompt, referenceImageUrls, duration, aspectRatio, generateAudio)
 
     console.log(`[TestVideo] Successfully generated video`)
 
@@ -95,7 +119,7 @@ export async function POST(request: NextRequest) {
         type: 'video',
         url: videoUrl,
         prompt: prompt,
-        model: 'kling-o3-pro'
+        model: `kling-o3-pro${duration ? ` (${duration}s)` : ''}${aspectRatio ? ` (${aspectRatio})` : ''}${generateAudio ? ` (audio)` : ''}`
       })
       console.log(`[TestVideo] Saved result to database`)
     } catch (dbError) {
@@ -107,7 +131,10 @@ export async function POST(request: NextRequest) {
       success: true,
       videoUrl,
       model: 'kling-o3-pro',
-      referenceImageCount: referenceImageUrls?.length || 0
+      referenceImageCount: referenceImageUrls?.length || 0,
+      duration,
+      aspectRatio,
+      generateAudio
     })
 
   } catch (error: any) {

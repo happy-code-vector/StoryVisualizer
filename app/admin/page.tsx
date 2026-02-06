@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban, Star, Database, BookOpen, Calendar, Eye, Info, Image, Video, Upload, Sparkles, Download, Loader2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
@@ -83,6 +84,9 @@ export default function AdminDashboard() {
   const [imageError, setImageError] = useState<string | null>(null)
 
   const [videoPrompt, setVideoPrompt] = useState('')
+  const [videoDuration, setVideoDuration] = useState<string>('5')
+  const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16:9')
+  const [generateAudio, setGenerateAudio] = useState<boolean>(false)
   const [referenceImageUrlInput, setReferenceImageUrlInput] = useState('')
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([])
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
@@ -568,7 +572,10 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({
           prompt: videoPrompt,
-          referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined
+          referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
+          duration: parseInt(videoDuration),
+          aspectRatio: videoAspectRatio,
+          generateAudio
         })
       })
 
@@ -1301,6 +1308,49 @@ export default function AdminDashboard() {
                         rows={4}
                         className="resize-none"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="videoDuration">Duration (seconds)</Label>
+                        <Select value={videoDuration} onValueChange={setVideoDuration}>
+                          <SelectTrigger id="videoDuration">
+                            <SelectValue placeholder="Select duration" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 13 }, (_, i) => i + 3).map((duration) => (
+                              <SelectItem key={duration} value={duration.toString()}>
+                                {duration} seconds
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="videoAspectRatio">Aspect Ratio</Label>
+                        <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio}>
+                          <SelectTrigger id="videoAspectRatio">
+                            <SelectValue placeholder="Select aspect ratio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+                            <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
+                            <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="generateAudio"
+                        checked={generateAudio}
+                        onCheckedChange={(checked) => setGenerateAudio(checked as boolean)}
+                      />
+                      <Label htmlFor="generateAudio" className="cursor-pointer">
+                        Generate Audio (supports Chinese and English voice output)
+                      </Label>
                     </div>
 
                     <div className="space-y-2">
