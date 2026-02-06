@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTestResult } from '@/lib/test-results-db'
 import { fal } from '@fal-ai/client'
+import {
+  setRequestStatus,
+  processVideoAsync
+} from '@/lib/video-request-store'
 
 // Initialize FAL client
 const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY || process.env.FAL_KEY
@@ -19,20 +22,23 @@ interface TestVideoRequest {
   generateAudio?: boolean
 }
 
-// Test video generation using Kling model with best quality settings
-async function generateTestVideo(
-  prompt: string,
-  referenceImageUrls?: string[],
-  duration?: number,
-  aspectRatio?: string,
-  generateAudio?: boolean
-): Promise<string> {
-  if (!FAL_AI_API_KEY) {
-    throw new Error('FAL_AI_API_KEY is not configured')
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    console.log(`[TestVideo] Generating video with Kling O3 Pro${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}`)
+    const body: TestVideoRequest = await request.json()
+    const { prompt, referenceImageUrls, duration, aspectRatio, generateAudio } = body
+
+    if (!prompt) {
+      return NextResponse.json(
+        { error: 'Prompt is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!FAL_AI_API_KEY) {
+      throw new Error('FAL_AI_API_KEY is not configured')
+    }
+
+    console.log(`[TestVideo] Video generation request received${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}${duration ? ` with ${duration}s duration` : ''}${aspectRatio ? ` with ${aspectRatio} aspect ratio` : ''}${generateAudio ? ` with audio generation` : ''}`)
 
     // Build input object for FAL
     const input: any = {
@@ -61,81 +67,29 @@ async function generateTestVideo(
 
     console.log('[TestVideo] Request payload:', input)
 
-    // Use fal.subscribe() to handle long-running tasks with automatic polling
-    const result = await fal.subscribe("fal-ai/kling-video/o3/pro/reference-to-video", {
+    // Submit to FAL queue and get request ID immediately
+    const queueStatus = await fal.queue.submit("fal-ai/kling-video/o3/pro/reference-to-video", {
       input: input,
-      logs: true,
-      onQueueUpdate: (update) => {
-        console.log(`[TestVideo] Status: ${update.status}`)
-        // Only IN_PROGRESS has logs
-        if (update.status === "IN_PROGRESS") {
-          update.logs.forEach((log) => {
-            console.log(`[TestVideo] Log: ${log.message}`)
-          })
-        }
-      },
     })
 
-    console.log('[TestVideo] FAL response received:', result)
+    console.log('[TestVideo] Job submitted to FAL queue:', queueStatus.request_id)
 
-    // Extract video URL from result
-    if (result.data && result.data.video && result.data.video.url) {
-      return result.data.video.url
-    }
+    // Generate local request ID
+    const localRequestId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 
-    // Some models return the URL directly
-    if (result.data && result.data.url) {
-      return result.data.url
-    }
+    // Store request info
+    const model = `kling-o3-pro${duration ? ` (${duration}s)` : ''}${aspectRatio ? ` (${aspectRatio})` : ''}${generateAudio ? ` (audio)` : ''}`
+    setRequestStatus(localRequestId, queueStatus.request_id, prompt, model)
 
-    throw new Error('No video URL in response')
+    // Start processing asynchronously (don't await)
+    processVideoAsync(localRequestId, queueStatus.request_id, input, prompt, model)
 
-  } catch (error: any) {
-    console.error('[TestVideo] Error generating test video:', error)
-    throw error
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body: TestVideoRequest = await request.json()
-    const { prompt, referenceImageUrls, duration, aspectRatio, generateAudio } = body
-
-    if (!prompt) {
-      return NextResponse.json(
-        { error: 'Prompt is required' },
-        { status: 400 }
-      )
-    }
-
-    console.log(`[TestVideo] Video generation request received${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}${duration ? ` with ${duration}s duration` : ''}${aspectRatio ? ` with ${aspectRatio} aspect ratio` : ''}${generateAudio ? ` with audio generation` : ''}`)
-
-    const videoUrl = await generateTestVideo(prompt, referenceImageUrls, duration, aspectRatio, generateAudio)
-
-    console.log(`[TestVideo] Successfully generated video`)
-
-    // Save result to database
-    try {
-      await createTestResult({
-        type: 'video',
-        url: videoUrl,
-        prompt: prompt,
-        model: `kling-o3-pro${duration ? ` (${duration}s)` : ''}${aspectRatio ? ` (${aspectRatio})` : ''}${generateAudio ? ` (audio)` : ''}`
-      })
-      console.log(`[TestVideo] Saved result to database`)
-    } catch (dbError) {
-      console.error('[TestVideo] Failed to save to database:', dbError)
-      // Don't fail the request if DB save fails
-    }
-
+    // Return immediately with request ID
     return NextResponse.json({
       success: true,
-      videoUrl,
-      model: 'kling-o3-pro',
-      referenceImageCount: referenceImageUrls?.length || 0,
-      duration,
-      aspectRatio,
-      generateAudio
+      requestId: localRequestId,
+      status: 'pending',
+      message: 'Video generation job submitted. Use the requestId to check status.'
     })
 
   } catch (error: any) {
@@ -156,15 +110,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (error.message?.includes('queue')) {
-      return NextResponse.json(
-        { error: 'Request queued. Please try again in a few moments.' },
-        { status: 503 }
-      )
-    }
-
     return NextResponse.json(
-      { error: error.message || 'Failed to generate video' },
+      { error: error.message || 'Failed to submit video generation job' },
       { status: 500 }
     )
   }

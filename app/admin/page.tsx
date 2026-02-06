@@ -92,6 +92,8 @@ export default function AdminDashboard() {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [videoRequestId, setVideoRequestId] = useState<string | null>(null)
+  const [videoGenerationStatus, setVideoGenerationStatus] = useState<string>('')
 
   // Test gallery states
   const [testResults, setTestResults] = useState<any[]>([])
@@ -558,11 +560,13 @@ export default function AdminDashboard() {
     setIsGeneratingVideo(true)
     setVideoError(null)
     setGeneratedVideo(null)
+    setVideoRequestId(null)
+    setVideoGenerationStatus('Initializing...')
 
     try {
       const token = getCookie('authToken')
 
-      // Use the test API for video generation with Kling
+      // Submit the video generation job
       const response = await fetch('/api/admin/test/generate-video', {
         method: 'POST',
         headers: {
@@ -581,15 +585,79 @@ export default function AdminDashboard() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Video generation failed')
+        throw new Error(data.error || 'Failed to submit video generation job')
       }
 
-      setGeneratedVideo(data.videoUrl)
+      // Store the request ID
+      const requestId = data.requestId
+      setVideoRequestId(requestId)
+
+      // Poll for status updates
+      if (token) {
+        pollVideoStatus(requestId, token)
+      } else {
+        setVideoError('Authentication token not found')
+        setIsGeneratingVideo(false)
+      }
+
     } catch (error: any) {
       setVideoError(error.message || 'Failed to generate video')
-    } finally {
       setIsGeneratingVideo(false)
+      setVideoGenerationStatus('')
     }
+  }
+
+  // Poll video generation status
+  const pollVideoStatus = async (requestId: string, token: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/admin/test/video-status?requestId=${requestId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          clearInterval(pollInterval)
+          setVideoError(data.error || 'Failed to check video status')
+          setIsGeneratingVideo(false)
+          setVideoGenerationStatus('')
+          return
+        }
+
+        // Update status based on response
+        switch (data.status) {
+          case 'pending':
+            setVideoGenerationStatus('Queued for generation...')
+            break
+          case 'processing':
+            setVideoGenerationStatus('Generating video (this may take 1-2 minutes)...')
+            break
+          case 'completed':
+            clearInterval(pollInterval)
+            setVideoGenerationStatus('Completed!')
+            setGeneratedVideo(data.videoUrl)
+            setIsGeneratingVideo(false)
+            // Refresh test results to show the new video
+            fetchTestResults()
+            break
+          case 'failed':
+            clearInterval(pollInterval)
+            setVideoError(data.error || 'Video generation failed')
+            setIsGeneratingVideo(false)
+            setVideoGenerationStatus('')
+            break
+        }
+
+      } catch (error: any) {
+        clearInterval(pollInterval)
+        setVideoError(error.message || 'Failed to check video status')
+        setIsGeneratingVideo(false)
+        setVideoGenerationStatus('')
+      }
+    }, 3000) // Poll every 3 seconds
   }
 
   // Add reference image URL
@@ -1483,8 +1551,11 @@ export default function AdminDashboard() {
                       <div className="aspect-video flex items-center justify-center border rounded-lg bg-muted">
                         <div className="text-center">
                           <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
-                          <p className="text-sm text-muted-foreground">Generating video...</p>
-                          <p className="text-xs text-muted-foreground mt-2">This may take a minute</p>
+                          <p className="text-sm text-muted-foreground">{videoGenerationStatus || 'Generating video...'}</p>
+                          <p className="text-xs text-muted-foreground mt-2">This may take 1-2 minutes</p>
+                          {videoRequestId && (
+                            <p className="text-xs text-muted-foreground mt-1">Request ID: {videoRequestId}</p>
+                          )}
                         </div>
                       </div>
                     ) : generatedVideo ? (
