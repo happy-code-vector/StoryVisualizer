@@ -1,42 +1,41 @@
 import { NextResponse } from 'next/server'
-import Database from 'better-sqlite3'
-import path from 'path'
-
-// Initialize the database
-const dbPath = path.join(process.cwd(), 'story-visualizer.db')
-const db = new Database(dbPath)
+import { supabase } from '@/lib/supabase-service'
 
 export async function POST(request: Request) {
   try {
     const { storyId, characters, scenes } = await request.json()
-    
+
     if (!storyId) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 })
     }
 
-    // Update character images
+    // Update character images in Supabase
     if (characters && Array.isArray(characters)) {
-      const charStmt = db.prepare(`
-        UPDATE characters 
-        SET image_url = ? 
-        WHERE story_id = ? AND name = ?
-      `)
-      
       for (const character of characters) {
-        charStmt.run(character.imageUrl || null, storyId, character.name)
+        const { error } = await supabase
+          .from('characters')
+          .update({ image_url: character.imageUrl || null })
+          .eq('story_id', storyId)
+          .eq('name', character.name)
+
+        if (error) {
+          console.error('Error updating character image:', error)
+        }
       }
     }
-    
-    // Update scene images
+
+    // Update scene images in Supabase
     if (scenes && Array.isArray(scenes)) {
-      const sceneStmt = db.prepare(`
-        UPDATE scenes 
-        SET image_url = ? 
-        WHERE story_id = ? AND scene_id = ?
-      `)
-      
       for (const scene of scenes) {
-        sceneStmt.run(scene.imageUrl || null, storyId, scene.id)
+        const { error } = await supabase
+          .from('scenes')
+          .update({ image_url: scene.imageUrl || null })
+          .eq('story_id', storyId)
+          .eq('scene_id', scene.id)
+
+        if (error) {
+          console.error('Error updating scene image:', error)
+        }
       }
     }
 
