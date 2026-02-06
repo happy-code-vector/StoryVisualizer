@@ -83,7 +83,8 @@ export default function AdminDashboard() {
   const [imageError, setImageError] = useState<string | null>(null)
 
   const [videoPrompt, setVideoPrompt] = useState('')
-  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null)
+  const [referenceImageUrlInput, setReferenceImageUrlInput] = useState('')
+  const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([])
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null)
   const [videoError, setVideoError] = useState<string | null>(null)
@@ -539,25 +540,7 @@ export default function AdminDashboard() {
     }
   }
 
-  // Handle reference image file selection
-  const handleReferenceImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // Create preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setReferenceImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  // Clear reference image
-  const clearReferenceImage = () => {
-    setReferenceImagePreview(null)
-  }
-
-  // Handle video generation (using Kling model)
+  // Handle video generation (using Kling O3 Pro model)
   const handleVideoGeneration = async () => {
     if (!videoPrompt.trim()) {
       setVideoError('Please provide a prompt')
@@ -571,7 +554,7 @@ export default function AdminDashboard() {
     try {
       const token = getCookie('authToken')
 
-      // Use the new test API for video generation with Kling
+      // Use the test API for video generation with Kling
       const response = await fetch('/api/admin/test/generate-video', {
         method: 'POST',
         headers: {
@@ -580,7 +563,7 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({
           prompt: videoPrompt,
-          referenceImageUrl: referenceImagePreview || undefined
+          referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined
         })
       })
 
@@ -595,6 +578,27 @@ export default function AdminDashboard() {
       setVideoError(error.message || 'Failed to generate video')
     } finally {
       setIsGeneratingVideo(false)
+    }
+  }
+
+  // Add reference image URL
+  const addReferenceImageUrl = () => {
+    if (referenceImageUrlInput.trim() && !referenceImageUrls.includes(referenceImageUrlInput.trim())) {
+      setReferenceImageUrls([...referenceImageUrls, referenceImageUrlInput.trim()])
+      setReferenceImageUrlInput('')
+    }
+  }
+
+  // Remove reference image URL
+  const removeReferenceImageUrl = (index: number) => {
+    setReferenceImageUrls(referenceImageUrls.filter((_, i) => i !== index))
+  }
+
+  // Handle Enter key in URL input
+  const handleUrlInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addReferenceImageUrl()
     }
   }
 
@@ -1223,7 +1227,7 @@ export default function AdminDashboard() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Generate Video</CardTitle>
-                    <CardDescription>Test video generation using Kling AI model (supports text-to-video and image-to-video)</CardDescription>
+                    <CardDescription>Test video generation using Kling O3 Pro model (supports text-to-video and image-to-video)</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -1239,46 +1243,68 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="referenceImage">Reference Image (Optional)</Label>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Upload an image to use image-to-video mode. Leave empty for text-to-video mode.
+                      <Label htmlFor="referenceImageUrl">Reference Image URLs (Optional)</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Enter one or more image URLs to use image-to-video mode. Leave empty for text-to-video mode.
                       </p>
-                      <div className="border-2 border-dashed rounded-lg p-4">
-                        {referenceImagePreview ? (
-                          <div className="space-y-2">
-                            <img
-                              src={referenceImagePreview}
-                              alt="Reference image preview"
-                              className="w-full h-40 object-cover rounded"
-                            />
-                            <Button
-                              variant="outline"
-                                size="sm"
-                                onClick={clearReferenceImage}
-                                className="w-full"
-                              >
-                                <X className="w-4 h-4 mr-2" />
-                                Remove Image
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="text-center">
-                              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground mb-2">
-                                Upload a reference image
-                              </p>
-                              <Input
-                                id="referenceImage"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleReferenceImageChange}
-                                className="max-w-xs mx-auto"
-                              />
-                            </div>
-                          )}
-                        </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="referenceImageUrl"
+                          type="url"
+                          placeholder="https://example.com/image.jpg"
+                          value={referenceImageUrlInput}
+                          onChange={(e) => setReferenceImageUrlInput(e.target.value)}
+                          onKeyDown={handleUrlInputKeyDown}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addReferenceImageUrl}
+                          disabled={!referenceImageUrlInput.trim()}
+                        >
+                          <Upload className="w-4 h-4" />
+                        </Button>
                       </div>
-                    )}
+
+                      {referenceImageUrls.length > 0 && (
+                        <div className="space-y-3 mt-3">
+                          <p className="text-xs text-muted-foreground">
+                            {referenceImageUrls.length} reference image{referenceImageUrls.length > 1 ? 's' : ''} added:
+                          </p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {referenceImageUrls.map((url, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={url}
+                                  alt={`Reference ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23ccc"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-size="12"%3EInvalid%3C/text%3E%3C/svg%3E'
+                                  }}
+                                />
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removeReferenceImageUrl(index)}
+                                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReferenceImageUrls([])}
+                            className="w-full"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Remove All
+                          </Button>
+                        </div>
+                      )}
+                    </div>
 
                     {videoError && (
                       <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">

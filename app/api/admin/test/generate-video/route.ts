@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 interface TestVideoRequest {
   prompt: string
-  referenceImageUrl?: string
+  referenceImageUrls?: string[]
 }
 
-// Test video generation using Kling model without saving to database
-async function generateTestVideo(prompt: string, referenceImageUrl?: string): Promise<string> {
+// Test video generation using Kling model with best quality settings
+async function generateTestVideo(prompt: string, referenceImageUrls?: string[]): Promise<string> {
   const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY || process.env.FAL_KEY
 
   if (!FAL_AI_API_KEY) {
@@ -14,19 +14,24 @@ async function generateTestVideo(prompt: string, referenceImageUrl?: string): Pr
   }
 
   try {
-    console.log(`[TestVideo] Generating video with Kling model`)
+    console.log(`[TestVideo] Generating video with Kling O3 Pro${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}`)
 
-    // Use Kling video model from FAL
-    // Kling model: fal-ai/kling-video
-    const endpoint = 'https://fal.run/fal-ai/kling-video'
+    // Use Kling O3 Pro reference-to-video model from FAL
+    const endpoint = 'https://fal.run/fal-ai/kling-video/o3/pro/reference-to-video'
 
     const requestBody: any = {
       prompt: prompt,
     }
 
-    // Add reference image if provided (image-to-video mode)
-    if (referenceImageUrl) {
-      requestBody.image_url = referenceImageUrl
+    // Add reference images if provided
+    if (referenceImageUrls && referenceImageUrls.length > 0) {
+      // Use first image as primary reference
+      requestBody.image_url = referenceImageUrls[0]
+
+      // If multiple images provided, add them as additional references
+      if (referenceImageUrls.length > 1) {
+        requestBody.image_urls = referenceImageUrls
+      }
     }
 
     const response = await fetch(endpoint, {
@@ -68,7 +73,7 @@ async function generateTestVideo(prompt: string, referenceImageUrl?: string): Pr
 export async function POST(request: NextRequest) {
   try {
     const body: TestVideoRequest = await request.json()
-    const { prompt, referenceImageUrl } = body
+    const { prompt, referenceImageUrls } = body
 
     if (!prompt) {
       return NextResponse.json(
@@ -77,17 +82,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[TestVideo] Video generation request received${referenceImageUrl ? ' with reference image' : ''}`)
+    console.log(`[TestVideo] Video generation request received${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}`)
 
-    const videoUrl = await generateTestVideo(prompt, referenceImageUrl)
+    const videoUrl = await generateTestVideo(prompt, referenceImageUrls)
 
     console.log(`[TestVideo] Successfully generated video`)
 
     return NextResponse.json({
       success: true,
       videoUrl,
-      model: 'kling-video',
-      hasReferenceImage: !!referenceImageUrl
+      model: 'kling-o3-pro',
+      referenceImageCount: referenceImageUrls?.length || 0
     })
 
   } catch (error: any) {
