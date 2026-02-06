@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createTestResult } from '@/lib/test-results-db'
+import { fal } from '@fal-ai/client'
+
+// Initialize FAL client
+const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY || process.env.FAL_KEY
+
+if (FAL_AI_API_KEY) {
+  fal.config({
+    credentials: FAL_AI_API_KEY
+  })
+}
 
 interface TestVideoRequest {
   prompt: string
@@ -17,8 +27,6 @@ async function generateTestVideo(
   aspectRatio?: string,
   generateAudio?: boolean
 ): Promise<string> {
-  const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY || process.env.FAL_KEY
-
   if (!FAL_AI_API_KEY) {
     throw new Error('FAL_AI_API_KEY is not configured')
   }
@@ -26,61 +34,58 @@ async function generateTestVideo(
   try {
     console.log(`[TestVideo] Generating video with Kling O3 Pro${referenceImageUrls?.length ? ` with ${referenceImageUrls.length} reference images` : ''}`)
 
-    // Use Kling O3 Pro reference-to-video model from FAL
-    const endpoint = 'https://fal.run/fal-ai/kling-video/o3/pro/reference-to-video'
-
-    const requestBody: any = {
+    // Build input object for FAL
+    const input: any = {
       prompt: prompt,
     }
 
     // Add reference images if provided
     if (referenceImageUrls && referenceImageUrls.length > 0) {
-      requestBody.image_urls = referenceImageUrls
+      input.image_urls = referenceImageUrls
     }
 
     // Add duration if provided
     if (duration) {
-      requestBody.duration = duration.toString()
+      input.duration = duration.toString()
     }
 
     // Add aspect ratio if provided
     if (aspectRatio) {
-      requestBody.aspect_ratio = aspectRatio
+      input.aspect_ratio = aspectRatio
     }
 
     // Add generate_audio option if provided
     if (generateAudio !== undefined) {
-      requestBody.generate_audio = generateAudio
+      input.generate_audio = generateAudio
     }
 
-    console.log(requestBody)
+    console.log('[TestVideo] Request payload:', input)
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_AI_API_KEY}`,
-        'Content-Type': 'application/json',
+    // Use fal.subscribe() to handle long-running tasks with automatic polling
+    const result = await fal.subscribe("fal-ai/kling-video/o3/pro/reference-to-video", {
+      input: input,
+      logs: true,
+      onQueueUpdate: (update) => {
+        console.log(`[TestVideo] Status: ${update.status}`)
+        // Only IN_PROGRESS has logs
+        if (update.status === "IN_PROGRESS") {
+          update.logs.forEach((log) => {
+            console.log(`[TestVideo] Log: ${log.message}`)
+          })
+        }
       },
-      body: JSON.stringify(requestBody)
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.message || errorData.error || `Fal AI API error: ${response.status}`
-      console.error('[TestVideo] Kling API error:', errorData)
-      throw new Error(errorMessage)
-    }
+    console.log('[TestVideo] FAL response received:', result)
 
-    const data = await response.json()
-
-    // Check for video result
-    if (data.video && data.video.url) {
-      return data.video.url
+    // Extract video URL from result
+    if (result.data && result.data.video && result.data.video.url) {
+      return result.data.video.url
     }
 
     // Some models return the URL directly
-    if (data.url) {
-      return data.url
+    if (result.data && result.data.url) {
+      return result.data.url
     }
 
     throw new Error('No video URL in response')

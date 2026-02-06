@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as fal from '@fal-ai/client'
+import { fal } from '@fal-ai/client'
 
 interface VideoGenerationRequest {
   imageUrl: string
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
               num_frames: Math.min(scene.duration * 8, 25), // Max 25 frames for SVD
             },
           })
-          videoUrl = result.video?.url
+          videoUrl = result.data.video?.url
           break
 
         case 'runway-gen2':
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
               watermark: false,
             },
           })
-          videoUrl = result.video?.url
+          videoUrl = result.data.video?.url
           break
 
         case 'pika-labs':
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
               fps: 24,
             },
           })
-          videoUrl = result.video?.url
+          videoUrl = result.data.video?.url
           break
 
         default:
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
               num_frames: Math.min(scene.duration * 8, 25),
             },
           })
-          videoUrl = result.video?.url
+          videoUrl = result.data.video?.url
           break
       }
 
