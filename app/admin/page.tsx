@@ -96,7 +96,6 @@ export default function AdminDashboard() {
   // Test gallery states
   const [testResults, setTestResults] = useState<any[]>([])
   const [testResultsLoading, setTestResultsLoading] = useState(false)
-  const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([])
 
   // Check if user has admin access
   useEffect(() => {
@@ -651,19 +650,15 @@ export default function AdminDashboard() {
     }
   }, [testTab])
 
-  // Toggle image selection from gallery
+  // Toggle image selection from gallery (directly adds/removes from reference images)
   const toggleImageSelection = (url: string) => {
-    if (selectedImageUrls.includes(url)) {
-      setSelectedImageUrls(selectedImageUrls.filter(u => u !== url))
+    if (referenceImageUrls.includes(url)) {
+      // Remove from reference images
+      setReferenceImageUrls(referenceImageUrls.filter(u => u !== url))
     } else {
-      setSelectedImageUrls([...selectedImageUrls, url])
+      // Add to reference images
+      setReferenceImageUrls([...referenceImageUrls, url])
     }
-  }
-
-  // Add selected gallery images to reference images
-  const addSelectedGalleryImages = () => {
-    setReferenceImageUrls([...referenceImageUrls, ...selectedImageUrls])
-    setSelectedImageUrls([])
   }
 
   // Filter out root users and current user from the display
@@ -1420,20 +1415,9 @@ export default function AdminDashboard() {
                     {/* Test Gallery Section */}
                     {Array.isArray(testResults) && testResults.filter(r => r.type === 'image').length > 0 && (
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Test Gallery (Click to select)</Label>
-                          {selectedImageUrls.length > 0 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={addSelectedGalleryImages}
-                            >
-                              Add Selected ({selectedImageUrls.length})
-                            </Button>
-                          )}
-                        </div>
+                        <Label>Test Gallery (Click to add/remove reference images)</Label>
                         <p className="text-xs text-muted-foreground">
-                          Select previously generated images to use as reference
+                          Click images to add them as reference images for video generation
                         </p>
                         <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 border rounded-lg">
                           {testResults.filter(r => r.type === 'image').map((result) => (
@@ -1441,7 +1425,7 @@ export default function AdminDashboard() {
                               key={result.id}
                               onClick={() => toggleImageSelection(result.url)}
                               className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                                selectedImageUrls.includes(result.url)
+                                referenceImageUrls.includes(result.url)
                                   ? 'border-primary ring-2 ring-primary/50'
                                   : 'border-transparent hover:border-muted-foreground'
                               }`}
@@ -1451,7 +1435,7 @@ export default function AdminDashboard() {
                                 alt={result.prompt || 'Test result'}
                                 className="w-full h-20 object-cover"
                               />
-                              {selectedImageUrls.includes(result.url) && (
+                              {referenceImageUrls.includes(result.url) && (
                                 <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
                                   <Check className="w-3 h-3" />
                                 </div>

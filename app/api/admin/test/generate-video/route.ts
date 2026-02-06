@@ -53,6 +53,8 @@ async function generateTestVideo(
       requestBody.generate_audio = generateAudio
     }
 
+    console.log(requestBody)
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
