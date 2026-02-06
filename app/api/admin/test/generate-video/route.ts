@@ -35,13 +35,7 @@ async function generateTestVideo(
 
     // Add reference images if provided
     if (referenceImageUrls && referenceImageUrls.length > 0) {
-      // Use first image as primary reference
-      requestBody.image_url = referenceImageUrls[0]
-
-      // If multiple images provided, add them as additional references
-      if (referenceImageUrls.length > 1) {
-        requestBody.image_urls = referenceImageUrls
-      }
+      requestBody.image_urls = referenceImageUrls
     }
 
     // Add duration if provided
