@@ -63,6 +63,7 @@ export async function getAllTestResults(limit?: number): Promise<TestResult[]> {
       return []
     }
 
+    console.log('[TestResultsDB] Fetched test results:', data?.length || 0, 'items')
     return data || []
   } catch (error) {
     console.error('[TestResultsDB] Error fetching test results:', error)

@@ -620,10 +620,18 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         const data = await response.json()
-        setTestResults(data.results || [])
+        console.log('[Admin Gallery] Received data:', data)
+        const results = Array.isArray(data.results) ? data.results : []
+        console.log('[Admin Gallery] Setting test results:', results.length, 'items')
+        setTestResults(results)
+      } else {
+        // If response is not ok, set to empty array
+        console.error('[Admin Gallery] Response not OK:', response.status, response.statusText)
+        setTestResults([])
       }
     } catch (error) {
       console.error('Error fetching test results:', error)
+      setTestResults([])
     } finally {
       setTestResultsLoading(false)
     }
@@ -1360,7 +1368,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Test Gallery Section */}
-                    {testResults.filter(r => r.type === 'image').length > 0 && (
+                    {Array.isArray(testResults) && testResults.filter(r => r.type === 'image').length > 0 && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label>Test Gallery (Click to select)</Label>
@@ -1497,7 +1505,7 @@ export default function AdminDashboard() {
                     <div>
                       <CardTitle>Test Results Gallery</CardTitle>
                       <CardDescription>
-                        View all your test generations ({testResults.length} items)
+                        View all your test generations ({Array.isArray(testResults) ? testResults.length : 0} items)
                       </CardDescription>
                     </div>
                     <Button
@@ -1515,7 +1523,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-center h-64">
                       <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
-                  ) : testResults.length === 0 ? (
+                  ) : !Array.isArray(testResults) || testResults.length === 0 ? (
                     <div className="text-center py-12">
                       <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-xl font-semibold mb-2">No Test Results Yet</h3>

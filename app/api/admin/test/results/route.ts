@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch all test results, most recent first, limited to 100
-    const results = getAllTestResults(100)
+    const results = await getAllTestResults(100)
+
+    console.log('[TestResults API] Returning', results.length, 'test results to client')
 
     return NextResponse.json({
       success: true,
@@ -47,14 +49,14 @@ export async function DELETE(request: NextRequest) {
 
     if (id) {
       // Delete specific result
-      deleteTestResult(parseInt(id))
+      await deleteTestResult(parseInt(id))
       return NextResponse.json({
         success: true,
         message: 'Test result deleted'
       })
     } else {
       // Delete all results
-      deleteAllTestResults()
+      await deleteAllTestResults()
       return NextResponse.json({
         success: true,
         message: 'All test results deleted'

@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Save result to database
     try {
-      createTestResult({
+      await createTestResult({
         type: 'video',
         url: videoUrl,
         prompt: prompt,

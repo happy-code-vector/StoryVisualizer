@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Save result to database
     try {
-      createTestResult({
+      await createTestResult({
         type: 'image',
         url: imageUrl,
         prompt: prompt,
