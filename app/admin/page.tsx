@@ -74,7 +74,7 @@ export default function AdminDashboard() {
   const [isTokenVerified, setIsTokenVerified] = useState(false)
 
   // Test generation states
-  const [testTab, setTestTab] = useState<'image' | 'video'>('image')
+  const [testTab, setTestTab] = useState<'image' | 'video' | 'gallery'>('image')
   const [imagePrompt, setImagePrompt] = useState('')
   const [imageModelType, setImageModelType] = useState<'character' | 'scene'>('scene')
   const [imageModelName, setImageModelName] = useState('')
@@ -88,6 +88,11 @@ export default function AdminDashboard() {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null)
   const [videoError, setVideoError] = useState<string | null>(null)
+
+  // Test gallery states
+  const [testResults, setTestResults] = useState<any[]>([])
+  const [testResultsLoading, setTestResultsLoading] = useState(false)
+  const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([])
 
   // Check if user has admin access
   useEffect(() => {
@@ -602,6 +607,50 @@ export default function AdminDashboard() {
     }
   }
 
+  // Fetch test results
+  const fetchTestResults = async () => {
+    setTestResultsLoading(true)
+    try {
+      const token = getCookie('authToken')
+      const response = await fetch('/api/admin/test/results', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTestResults(data.results || [])
+      }
+    } catch (error) {
+      console.error('Error fetching test results:', error)
+    } finally {
+      setTestResultsLoading(false)
+    }
+  }
+
+  // Fetch test results when test tab changes
+  useEffect(() => {
+    if (testTab && isAuthenticated && user?.verified) {
+      fetchTestResults()
+    }
+  }, [testTab])
+
+  // Toggle image selection from gallery
+  const toggleImageSelection = (url: string) => {
+    if (selectedImageUrls.includes(url)) {
+      setSelectedImageUrls(selectedImageUrls.filter(u => u !== url))
+    } else {
+      setSelectedImageUrls([...selectedImageUrls, url])
+    }
+  }
+
+  // Add selected gallery images to reference images
+  const addSelectedGalleryImages = () => {
+    setReferenceImageUrls([...referenceImageUrls, ...selectedImageUrls])
+    setSelectedImageUrls([])
+  }
+
   // Filter out root users and current user from the display
   const filteredUsers = users.filter(u => u.role !== 'root' && u.id !== user?.id)
   
@@ -1056,8 +1105,8 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="test" className="mt-6">
-          <Tabs value={testTab} onValueChange={(v) => setTestTab(v as 'image' | 'video')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <Tabs value={testTab} onValueChange={(v) => setTestTab(v as 'image' | 'video' | 'gallery')} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 max-w-md">
               <TabsTrigger value="image" className="flex items-center gap-2">
                 <Image className="w-4 h-4" />
                 Image Generation
@@ -1065,6 +1114,10 @@ export default function AdminDashboard() {
               <TabsTrigger value="video" className="flex items-center gap-2">
                 <Video className="w-4 h-4" />
                 Video Generation
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                Gallery
               </TabsTrigger>
             </TabsList>
 
@@ -1306,6 +1359,51 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
+                    {/* Test Gallery Section */}
+                    {testResults.filter(r => r.type === 'image').length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Test Gallery (Click to select)</Label>
+                          {selectedImageUrls.length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={addSelectedGalleryImages}
+                            >
+                              Add Selected ({selectedImageUrls.length})
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Select previously generated images to use as reference
+                        </p>
+                        <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 border rounded-lg">
+                          {testResults.filter(r => r.type === 'image').map((result) => (
+                            <div
+                              key={result.id}
+                              onClick={() => toggleImageSelection(result.url)}
+                              className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                                selectedImageUrls.includes(result.url)
+                                  ? 'border-primary ring-2 ring-primary/50'
+                                  : 'border-transparent hover:border-muted-foreground'
+                              }`}
+                            >
+                              <img
+                                src={result.url}
+                                alt={result.prompt || 'Test result'}
+                                className="w-full h-20 object-cover"
+                              />
+                              {selectedImageUrls.includes(result.url) && (
+                                <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
+                                  <Check className="w-3 h-3" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {videoError && (
                       <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
                         {videoError}
@@ -1389,6 +1487,100 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Test Gallery */}
+            <TabsContent value="gallery" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Test Results Gallery</CardTitle>
+                      <CardDescription>
+                        View all your test generations ({testResults.length} items)
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchTestResults}
+                      disabled={testResultsLoading}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {testResultsLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : testResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">No Test Results Yet</h3>
+                      <p className="text-muted-foreground">
+                        Generate images or videos to see them here
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {testResults.map((result) => (
+                        <div key={result.id} className="group relative">
+                          <div className="aspect-square border rounded-lg overflow-hidden bg-muted">
+                            {result.type === 'image' ? (
+                              <img
+                                src={result.url}
+                                alt={result.prompt || 'Test result'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <video
+                                src={result.url}
+                                controls
+                                className="w-full h-full"
+                              />
+                            )}
+                          </div>
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Delete this test result?')) {
+                                  fetch('/api/admin/test/results?id=' + result.id, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${getCookie('authToken')}` }
+                                  }).then(() => fetchTestResults())
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div className="mt-2">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className={`px-2 py-0.5 rounded-full ${
+                                result.type === 'image'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {result.type === 'image' ? 'Image' : 'Video'}
+                              </span>
+                              <span>{new Date(result.created_at).toLocaleDateString()}</span>
+                            </div>
+                            {result.prompt && (
+                              <p className="text-xs text-muted-foreground truncate mt-1">
+                                {result.prompt}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </TabsContent>

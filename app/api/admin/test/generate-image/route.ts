@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getModelByName } from '@/lib/supabase-service'
+import { createTestResult } from '@/lib/test-results-db'
 
 interface TestImageRequest {
   prompt: string
@@ -96,6 +97,20 @@ export async function POST(request: NextRequest) {
     const imageUrl = await generateTestImage(prompt, modelName, type)
 
     console.log(`[TestImage] Successfully generated image`)
+
+    // Save result to database
+    try {
+      createTestResult({
+        type: 'image',
+        url: imageUrl,
+        prompt: prompt,
+        model: modelName
+      })
+      console.log(`[TestImage] Saved result to database`)
+    } catch (dbError) {
+      console.error('[TestImage] Failed to save to database:', dbError)
+      // Don't fail the request if DB save fails
+    }
 
     return NextResponse.json({
       success: true,

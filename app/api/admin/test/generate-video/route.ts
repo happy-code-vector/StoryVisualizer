@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createTestResult } from '@/lib/test-results-db'
 
 interface TestVideoRequest {
   prompt: string
@@ -87,6 +88,20 @@ export async function POST(request: NextRequest) {
     const videoUrl = await generateTestVideo(prompt, referenceImageUrls)
 
     console.log(`[TestVideo] Successfully generated video`)
+
+    // Save result to database
+    try {
+      createTestResult({
+        type: 'video',
+        url: videoUrl,
+        prompt: prompt,
+        model: 'kling-o3-pro'
+      })
+      console.log(`[TestVideo] Saved result to database`)
+    } catch (dbError) {
+      console.error('[TestVideo] Failed to save to database:', dbError)
+      // Don't fail the request if DB save fails
+    }
 
     return NextResponse.json({
       success: true,
