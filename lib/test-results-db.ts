@@ -1,25 +1,14 @@
-import Database from 'better-sqlite3'
-import path from 'path'
+import { createClient } from '@supabase/supabase-js'
 
-const dbPath = path.join(process.cwd(), 'story-visualizer.db')
-const db = new Database(dbPath)
+// Initialize Supabase client for server-side use
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseKey = process.env.SUPABASE_API_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Initialize test results table
-export function initTestResultsTable() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS test_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      type TEXT NOT NULL CHECK(type IN ('image', 'video')),
-      url TEXT NOT NULL,
-      prompt TEXT,
-      model TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_test_results_type ON test_results(type);
-    CREATE INDEX IF NOT EXISTS idx_test_results_created_at ON test_results(created_at DESC);
-  `)
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase environment variables for test-results-db')
 }
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
 export interface TestResult {
   id?: number
@@ -30,50 +19,118 @@ export interface TestResult {
   created_at?: string
 }
 
-export function createTestResult(result: Omit<TestResult, 'id' | 'created_at'>) {
-  const stmt = db.prepare(`
-    INSERT INTO test_results (type, url, prompt, model)
-    VALUES (?, ?, ?, ?)
-  `)
+export async function createTestResult(result: Omit<TestResult, 'id' | 'created_at'>): Promise<number | null> {
+  try {
+    const { data, error } = await supabase
+      .from('test_results')
+      .insert([
+        {
+          type: result.type,
+          url: result.url,
+          prompt: result.prompt || null,
+          model: result.model || null
+        }
+      ])
+      .select()
 
-  const insertResult = stmt.run(
-    result.type,
-    result.url,
-    result.prompt || null,
-    result.model || null
-  )
+    if (error) {
+      console.error('[TestResultsDB] Error creating test result:', error)
+      return null
+    }
 
-  return insertResult.lastInsertRowid
+    return data[0]?.id || null
+  } catch (error) {
+    console.error('[TestResultsDB] Error creating test result:', error)
+    return null
+  }
 }
 
-export function getAllTestResults(limit?: number): TestResult[] {
-  const query = limit
-    ? `SELECT * FROM test_results ORDER BY created_at DESC LIMIT ?`
-    : `SELECT * FROM test_results ORDER BY created_at DESC`
+export async function getAllTestResults(limit?: number): Promise<TestResult[]> {
+  try {
+    let query = supabase
+      .from('test_results')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-  const stmt = db.prepare(query)
-  return limit ? stmt.all(limit) as TestResult[] : stmt.all() as TestResult[]
+    if (limit) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('[TestResultsDB] Error fetching test results:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('[TestResultsDB] Error fetching test results:', error)
+    return []
+  }
 }
 
-export function getTestResultsByType(type: 'image' | 'video', limit?: number): TestResult[] {
-  const query = limit
-    ? `SELECT * FROM test_results WHERE type = ? ORDER BY created_at DESC LIMIT ?`
-    : `SELECT * FROM test_results WHERE type = ? ORDER BY created_at DESC`
+export async function getTestResultsByType(type: 'image' | 'video', limit?: number): Promise<TestResult[]> {
+  try {
+    let query = supabase
+      .from('test_results')
+      .select('*')
+      .eq('type', type)
+      .order('created_at', { ascending: false })
 
-  const stmt = db.prepare(query)
-  return limit ? stmt.all(type, limit) as TestResult[] : stmt.all(type) as TestResult[]
+    if (limit) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('[TestResultsDB] Error fetching test results by type:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('[TestResultsDB] Error fetching test results by type:', error)
+    return []
+  }
 }
 
-export function deleteTestResult(id: number) {
-  const stmt = db.prepare('DELETE FROM test_results WHERE id = ?')
-  stmt.run(id)
+export async function deleteTestResult(id: number): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('test_results')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[TestResultsDB] Error deleting test result:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[TestResultsDB] Error deleting test result:', error)
+    return false
+  }
 }
 
-export function deleteAllTestResults() {
-  db.exec('DELETE FROM test_results')
+export async function deleteAllTestResults(): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('test_results')
+      .delete()
+
+    if (error) {
+      console.error('[TestResultsDB] Error deleting all test results:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[TestResultsDB] Error deleting all test results:', error)
+    return false
+  }
 }
 
-// Initialize table on import
-initTestResultsTable()
-
-export default db
+export default supabase
