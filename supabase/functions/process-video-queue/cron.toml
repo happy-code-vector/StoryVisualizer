@@ -1,0 +1,7 @@
+# Supabase Edge Function Cron Configuration
+name = "process-video-queue"
+version = "0.1.0"
+
+[triggers.cron]
+# Run every 10 seconds
+schedule = "*/10 * * * * *"

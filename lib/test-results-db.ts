@@ -10,25 +10,35 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+export type TestResultStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
 export interface TestResult {
   id?: number
   type: 'image' | 'video'
-  url: string
+  url?: string
   prompt?: string
   model?: string
+  status?: TestResultStatus
+  request_id?: string
+  error_message?: string
   created_at?: string
+  updated_at?: string
 }
 
-export async function createTestResult(result: Omit<TestResult, 'id' | 'created_at'>): Promise<number | null> {
+// Create a test result (supports both completed and pending requests)
+export async function createTestResult(result: Omit<TestResult, 'id' | 'created_at' | 'updated_at'>): Promise<number | null> {
   try {
     const { data, error } = await supabase
       .from('test_results')
       .insert([
         {
           type: result.type,
-          url: result.url,
+          url: result.url || null,
           prompt: result.prompt || null,
-          model: result.model || null
+          model: result.model || null,
+          status: result.status || 'completed',
+          request_id: result.request_id || null,
+          error_message: result.error_message || null
         }
       ])
       .select()
@@ -94,6 +104,56 @@ export async function getTestResultsByType(type: 'image' | 'video', limit?: numb
   } catch (error) {
     console.error('[TestResultsDB] Error fetching test results by type:', error)
     return []
+  }
+}
+
+// Get pending test results for cron processing
+export async function getPendingTestResults(): Promise<TestResult[]> {
+  try {
+    const { data, error } = await supabase
+      .from('test_results')
+      .select('*')
+      .in('status', ['pending', 'processing'])
+      .order('created_at', { ascending: true })
+      .limit(50) // Process up to 50 pending requests at a time
+
+    if (error) {
+      console.error('[TestResultsDB] Error fetching pending test results:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('[TestResultsDB] Error fetching pending test results:', error)
+    return []
+  }
+}
+
+// Update test result status and result
+export async function updateTestResult(
+  id: number,
+  updates: Partial<Pick<TestResult, 'status' | 'url' | 'error_message'>>
+): Promise<boolean> {
+  try {
+    const updateData: any = {
+      ...updates,
+      updated_at: new Date().toISOString()
+    }
+
+    const { error } = await supabase
+      .from('test_results')
+      .update(updateData)
+      .eq('id', id)
+
+    if (error) {
+      console.error('[TestResultsDB] Error updating test result:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[TestResultsDB] Error updating test result:', error)
+    return false
   }
 }
 

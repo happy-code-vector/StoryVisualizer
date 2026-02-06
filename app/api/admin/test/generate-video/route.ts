@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
-import {
-  setRequestStatus,
-  processVideoAsync
-} from '@/lib/video-request-store'
+import { createTestResult } from '@/lib/test-results-db'
 
 // Initialize FAL client
 const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY || process.env.FAL_KEY
@@ -74,22 +71,30 @@ export async function POST(request: NextRequest) {
 
     console.log('[TestVideo] Job submitted to FAL queue:', queueStatus.request_id)
 
-    // Generate local request ID
-    const localRequestId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-
-    // Store request info
     const model = `kling-o3-pro${duration ? ` (${duration}s)` : ''}${aspectRatio ? ` (${aspectRatio})` : ''}${generateAudio ? ` (audio)` : ''}`
-    setRequestStatus(localRequestId, queueStatus.request_id, prompt, model)
 
-    // Start processing asynchronously (don't await)
-    processVideoAsync(localRequestId, queueStatus.request_id, input, prompt, model)
+    // Save pending request to database
+    const resultId = await createTestResult({
+      type: 'video',
+      prompt,
+      model,
+      status: 'pending',
+      request_id: queueStatus.request_id
+    })
 
-    // Return immediately with request ID
+    if (!resultId) {
+      throw new Error('Failed to save request to database')
+    }
+
+    console.log('[TestVideo] Saved pending request to database with ID:', resultId)
+
+    // Return immediately with database ID
     return NextResponse.json({
       success: true,
-      requestId: localRequestId,
+      id: resultId,
+      requestId: queueStatus.request_id,
       status: 'pending',
-      message: 'Video generation job submitted. Use the requestId to check status.'
+      message: 'Video generation job submitted and added to queue.'
     })
 
   } catch (error: any) {

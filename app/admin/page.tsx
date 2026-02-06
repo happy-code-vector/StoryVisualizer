@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban, Star, Database, BookOpen, Calendar, Eye, Info, Image, Video, Upload, Sparkles, Download, Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Plus, Trash2, Check, X, Settings, Users, UserX, Ban, Star, Database, BookOpen, Calendar, Eye, Info, Image, Video, Upload, Sparkles, Download, Loader2, RefreshCw, AlertCircle, Copy } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { getCookie } from '@/lib/cookie-utils'
@@ -90,10 +91,7 @@ export default function AdminDashboard() {
   const [referenceImageUrlInput, setReferenceImageUrlInput] = useState('')
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([])
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null)
   const [videoError, setVideoError] = useState<string | null>(null)
-  const [videoRequestId, setVideoRequestId] = useState<string | null>(null)
-  const [videoGenerationStatus, setVideoGenerationStatus] = useState<string>('')
 
   // Test gallery states
   const [testResults, setTestResults] = useState<any[]>([])
@@ -559,9 +557,6 @@ export default function AdminDashboard() {
 
     setIsGeneratingVideo(true)
     setVideoError(null)
-    setGeneratedVideo(null)
-    setVideoRequestId(null)
-    setVideoGenerationStatus('Initializing...')
 
     try {
       const token = getCookie('authToken')
@@ -588,76 +583,14 @@ export default function AdminDashboard() {
         throw new Error(data.error || 'Failed to submit video generation job')
       }
 
-      // Store the request ID
-      const requestId = data.requestId
-      setVideoRequestId(requestId)
-
-      // Poll for status updates
-      if (token) {
-        pollVideoStatus(requestId, token)
-      } else {
-        setVideoError('Authentication token not found')
-        setIsGeneratingVideo(false)
-      }
+      // Refresh the test results to show the new queued item
+      await fetchTestResults()
 
     } catch (error: any) {
-      setVideoError(error.message || 'Failed to generate video')
+      setVideoError(error.message || 'Failed to submit video generation job')
+    } finally {
       setIsGeneratingVideo(false)
-      setVideoGenerationStatus('')
     }
-  }
-
-  // Poll video generation status
-  const pollVideoStatus = async (requestId: string, token: string) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/admin/test/video-status?requestId=${requestId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          clearInterval(pollInterval)
-          setVideoError(data.error || 'Failed to check video status')
-          setIsGeneratingVideo(false)
-          setVideoGenerationStatus('')
-          return
-        }
-
-        // Update status based on response
-        switch (data.status) {
-          case 'pending':
-            setVideoGenerationStatus('Queued for generation...')
-            break
-          case 'processing':
-            setVideoGenerationStatus('Generating video (this may take 1-2 minutes)...')
-            break
-          case 'completed':
-            clearInterval(pollInterval)
-            setVideoGenerationStatus('Completed!')
-            setGeneratedVideo(data.videoUrl)
-            setIsGeneratingVideo(false)
-            // Refresh test results to show the new video
-            fetchTestResults()
-            break
-          case 'failed':
-            clearInterval(pollInterval)
-            setVideoError(data.error || 'Video generation failed')
-            setIsGeneratingVideo(false)
-            setVideoGenerationStatus('')
-            break
-        }
-
-      } catch (error: any) {
-        clearInterval(pollInterval)
-        setVideoError(error.message || 'Failed to check video status')
-        setIsGeneratingVideo(false)
-        setVideoGenerationStatus('')
-      }
-    }, 3000) // Poll every 3 seconds
   }
 
   // Add reference image URL
@@ -1540,61 +1473,130 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Result Section */}
+                {/* Queue Section */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Result</CardTitle>
-                    <CardDescription>Generated video will appear here</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Queue</CardTitle>
+                        <CardDescription>
+                          All video generation requests ({Array.isArray(testResults.filter((r: any) => r.type === 'video')) ? testResults.filter((r: any) => r.type === 'video').length : 0} items)
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchTestResults()}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Refresh
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    {isGeneratingVideo ? (
-                      <div className="aspect-video flex items-center justify-center border rounded-lg bg-muted">
-                        <div className="text-center">
-                          <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
-                          <p className="text-sm text-muted-foreground">{videoGenerationStatus || 'Generating video...'}</p>
-                          <p className="text-xs text-muted-foreground mt-2">This may take 1-2 minutes</p>
-                          {videoRequestId && (
-                            <p className="text-xs text-muted-foreground mt-1">Request ID: {videoRequestId}</p>
-                          )}
-                        </div>
-                      </div>
-                    ) : generatedVideo ? (
-                      <div className="space-y-4">
-                        <div className="aspect-video border rounded-lg overflow-hidden">
-                          <video
-                            src={generatedVideo}
-                            controls
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = generatedVideo
-                              link.download = `generated-video-${Date.now()}.mp4`
-                              link.click()
-                            }}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => setGeneratedVideo(null)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
+                    {testResults.filter((r: any) => r.type === 'video').length === 0 ? (
                       <div className="aspect-video flex items-center justify-center border rounded-lg bg-muted">
                         <div className="text-center text-muted-foreground">
                           <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>No video generated yet</p>
+                          <p>No video requests yet</p>
+                          <p className="text-xs mt-2">Generate your first video above</p>
                         </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                        {testResults
+                          .filter((r: any) => r.type === 'video')
+                          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                          .map((result: any) => (
+                            <div key={result.id} className="border rounded-lg p-4 space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-medium truncate">
+                                      {result.prompt || 'No prompt'}
+                                    </span>
+                                    <Badge variant={
+                                      result.status === 'completed' ? 'default' :
+                                      result.status === 'processing' ? 'secondary' :
+                                      result.status === 'failed' ? 'destructive' : 'outline'
+                                    }>
+                                      {result.status === 'completed' ? 'Completed' :
+                                       result.status === 'processing' ? 'Processing' :
+                                       result.status === 'failed' ? 'Failed' : 'Pending'}
+                                    </Badge>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground space-y-1">
+                                    <p>Model: {result.model || 'Unknown'}</p>
+                                    <p>Created: {new Date(result.created_at).toLocaleString()}</p>
+                                    {result.request_id && (
+                                      <p className="font-mono text-xs">ID: {result.request_id.slice(0, 12)}...</p>
+                                    )}
+                                  </div>
+                                  {result.error_message && (
+                                    <p className="text-xs text-destructive mt-2">{result.error_message}</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Video player or status */}
+                              {result.status === 'completed' && result.url ? (
+                                <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                                  <video
+                                    src={result.url}
+                                    controls
+                                    className="w-full h-full"
+                                  />
+                                </div>
+                              ) : result.status === 'pending' || result.status === 'processing' ? (
+                                <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+                                  <div className="text-center">
+                                    <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin text-primary" />
+                                    <p className="text-sm text-muted-foreground">
+                                      {result.status === 'pending' ? 'Queued for generation...' : 'Processing...'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">This may take 1-2 minutes</p>
+                                  </div>
+                                </div>
+                              ) : result.status === 'failed' ? (
+                                <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+                                  <div className="text-center text-destructive">
+                                    <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                                    <p className="text-sm">Generation failed</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{result.error_message || 'Unknown error'}</p>
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {/* Actions */}
+                              {result.status === 'completed' && result.url && (
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => {
+                                      const link = document.createElement('a')
+                                      link.href = result.url
+                                      link.download = `video-${result.id}-${Date.now()}.mp4`
+                                      link.click()
+                                    }}
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(result.url)
+                                    }}
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                       </div>
                     )}
                   </CardContent>
